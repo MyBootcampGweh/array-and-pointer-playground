@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowUp, ChevronDown, Info } from "lucide-react";
+import { ArrowUp, ChevronDown } from "lucide-react";
 import { useState } from "react";
 
 import { AddressMath } from "@/components/address-math";
@@ -87,10 +87,7 @@ export function ArrayMemoryDemo() {
             showAddresses
           />
           {picked === null || access === null ? null : (
-            <div className="flex flex-col items-center gap-4 rounded-xl border p-4">
-              <p className="text-sm text-muted-foreground">
-                Address <code>{access}</code> dihitung gini:
-              </p>
+            <div className="flex flex-col items-center gap-3">
               <AddressMath
                 index={picked}
                 baseCaption="Address awal"
@@ -112,11 +109,12 @@ export function ArrayMemoryDemo() {
               ) : null}
             </div>
           )}
-          <p className="flex gap-2 text-sm text-muted-foreground">
-            <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            Address aslinya heksadesimal (kayak 0x7ffd5c2c) dan beda tiap
-            program jalan. Di sini dibikin 1000-an biar gampang dihitung.
-          </p>
+        </>
+      }
+      footnote={
+        <>
+          Address aslinya heksadesimal (kayak 0x7ffd5c2c) dan beda tiap program
+          jalan. Di sini dibikin 1000-an biar gampang dihitung.
         </>
       }
       narration={

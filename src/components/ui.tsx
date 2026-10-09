@@ -1,4 +1,4 @@
-import { MousePointerClick, Terminal, TriangleAlert } from "lucide-react";
+import { Info, MousePointerClick, Terminal, TriangleAlert } from "lucide-react";
 import { type ComponentProps, type ReactNode } from "react";
 
 type ButtonVariant = "primary" | "outline" | "ghost";
@@ -130,6 +130,7 @@ export function Stage({
   visual,
   controls,
   narration,
+  footnote,
 }: {
   code: ReactNode;
   editor: ReactNode;
@@ -138,6 +139,8 @@ export function Stage({
   visual: ReactNode;
   controls?: ReactNode;
   narration: ReactNode;
+  /** Fine print under the narration, such as that the Addresses are made up. */
+  footnote?: ReactNode;
 }) {
   return (
     // `auto_1fr`: when the card is the taller side, the spare height goes
@@ -158,6 +161,12 @@ export function Stage({
         {visual}
         {controls}
         {narration}
+        {footnote ? (
+          <p className="flex gap-2 text-sm text-muted-foreground">
+            <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            <span>{footnote}</span>
+          </p>
+        ) : null}
       </section>
       <div className="min-w-0 lg:col-start-1 lg:row-start-2">{editor}</div>
     </div>
