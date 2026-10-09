@@ -263,9 +263,16 @@ function AddressText({
 /** A position past either end of the array, drawn as a dashed box. */
 export type Outside = {
   index: number;
-  /** `danger`: something reads it. `quiet`: shown, never touched. */
-  tone: "danger" | "quiet";
+  /**
+   * `danger`: something reads it. `quiet`: shown, never touched. `hidden`:
+   * not there yet, but holds its place so the strip never shifts when it
+   * turns `quiet`.
+   */
+  tone: "danger" | "quiet" | "hidden";
 };
+
+// Phones skip the placeholder: with it, five boxes would overflow 320px.
+const HOLDS_PLACE = "invisible max-sm:hidden";
 
 type ArrayColumn =
   | { kind: "element"; index: number; value: number | null }
@@ -374,7 +381,7 @@ export function ArrayDiagram({
             {columns.map((column) => (
               <td
                 key={columnKey(column)}
-                className={`px-1 pb-1 text-center font-mono text-sm ${column.kind === "gap" ? "text-muted-foreground" : "text-index-ink"} ${column.kind !== "gap" && column.index === activeIndex ? "font-bold" : ""}`}
+                className={`px-1 pb-1 text-center font-mono text-sm ${column.kind === "gap" ? "text-muted-foreground" : "text-index-ink"} ${column.kind !== "gap" && column.index === activeIndex ? "font-bold" : ""} ${column.kind === "outside" && column.tone === "hidden" ? HOLDS_PLACE : ""}`}
               >
                 {column.kind === "gap" ? "…" : `[${column.index}]`}
               </td>
@@ -395,7 +402,10 @@ export function ArrayDiagram({
               }
               if (column.kind === "outside") {
                 return (
-                  <td key={columnKey(column)} className="px-2">
+                  <td
+                    key={columnKey(column)}
+                    className={`px-2 ${column.tone === "hidden" ? HOLDS_PLACE : ""}`}
+                  >
                     {column.tone === "danger" ? (
                       <span
                         ref={revealInScroller}
@@ -404,7 +414,7 @@ export function ArrayDiagram({
                         <TriangleAlert aria-hidden="true" className="size-4" />?
                         <span className="sr-only"> (di luar array)</span>
                       </span>
-                    ) : (
+                    ) : column.tone === "quiet" ? (
                       <span
                         ref={revealInScroller}
                         className={`${BOX} ${ELEMENT_SIZE} rounded-xl border-dashed border-muted-foreground/50`}
@@ -413,6 +423,9 @@ export function ArrayDiagram({
                           di luar array, nggak disentuh
                         </span>
                       </span>
+                    ) : (
+                      // Same size as the quiet box, so its place is held.
+                      <span className={`${BOX} ${ELEMENT_SIZE}`} />
                     )}
                   </td>
                 );

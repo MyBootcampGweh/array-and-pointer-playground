@@ -8,7 +8,6 @@ import {
   DataEditor,
   NameField,
 } from "@/components/data-editor";
-import { LoopStatus } from "@/components/loop-status";
 import { ArrayDiagram } from "@/components/memory-diagram";
 import { StepControls, useStepper } from "@/components/step-controls";
 import { Narration, RoleChip, Stage } from "@/components/ui";
@@ -95,26 +94,24 @@ export function LoopInputDemo() {
       }
       hint="Tekan Lanjut buat jalanin loop-nya selangkah demi selangkah."
       visual={
-        <>
-          <ArrayDiagram
-            name={name}
-            values={frame.cells}
-            activeIndex={frame.activeIndex}
-            // Where i stops: past the end, shown but never written.
-            outside={
-              frame.i >= length ? { index: frame.i, tone: "quiet" } : null
-            }
-            marks={[
-              {
-                kind: "label",
-                role: "index",
-                column: frame.i,
-                label: `i = ${frame.i}`,
-              },
-            ]}
-          />
-          <LoopStatus frame={frame} length={length} />
-        </>
+        <ArrayDiagram
+          name={name}
+          values={frame.cells}
+          activeIndex={frame.activeIndex}
+          // Where i stops: past the end, shown but never written.
+          outside={{
+            index: length,
+            tone: frame.i >= length ? "quiet" : "hidden",
+          }}
+          marks={[
+            {
+              kind: "label",
+              role: "index",
+              column: frame.i,
+              label: `i = ${frame.i}`,
+            },
+          ]}
+        />
       }
       controls={<StepControls stepper={stepper} />}
       narration={<Narration>{describe(frame, name, length)}</Narration>}
