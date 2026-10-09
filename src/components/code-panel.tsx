@@ -15,7 +15,9 @@ export function CodePanel({
 }: CodePanelProps) {
   return (
     <Panel title="Kode C">
-      <pre className="overflow-x-auto rounded-xl bg-surface-muted py-3 font-mono text-sm leading-8 xl:text-base">
+      {/* `relative` keeps the absolutely positioned sr-only text inside the
+          scroller; otherwise it escapes and widens the whole page. */}
+      <pre className="relative overflow-x-auto rounded-xl bg-surface-muted py-3 font-mono text-sm leading-8 xl:text-base">
         <code>
           {lines.map((line, index) => {
             const isActive = index === activeLine;

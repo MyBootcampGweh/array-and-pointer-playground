@@ -2,18 +2,34 @@ export type LoopKind = "input" | "output";
 
 export type LoopPhase = "init" | "check" | "body" | "increment" | "done";
 
-export type LoopFrame = {
-  phase: LoopPhase;
+/**
+ * One evaluation step. `condition` exists only on a check and `activeIndex`
+ * (the element the body fills or prints) only on a body step.
+ */
+type LoopStep =
+  | { phase: "init" | "increment" | "done"; condition: null; activeIndex: null }
+  | { phase: "check"; condition: boolean; activeIndex: null }
+  | { phase: "body"; condition: null; activeIndex: number };
+
+export type LoopFrame = LoopStep & {
   /** Value of `i` after this step has run. */
   i: number;
-  /** Result of `i < ukuran_array`, only on a check step. */
-  condition: boolean | null;
   /** Array contents after this step; `null` marks an element not yet assigned. */
   cells: readonly (number | null)[];
-  /** Element filled or printed by the loop body on this step. */
-  activeIndex: number | null;
   /** Everything `printf` has written so far. */
   output: string;
+};
+
+/** Never empty: every trace has at least init, the final check and done. */
+export type LoopTrace = readonly [LoopFrame, ...LoopFrame[]];
+
+/** The piece of the `for` header each phase evaluates; the body has its own line. */
+export const LOOP_HEADER_PART: Record<LoopPhase, string | null> = {
+  init: "int i = 0",
+  check: "i < ukuran_array",
+  body: null,
+  increment: "i++",
+  done: null,
 };
 
 /**
@@ -28,31 +44,53 @@ export type LoopFrame = {
 export function traceForLoop(
   kind: LoopKind,
   values: readonly number[],
-): readonly LoopFrame[] {
+): LoopTrace {
   let cells: readonly (number | null)[] =
     kind === "input" ? values.map(() => null) : values;
   let output = "";
-  const frames: LoopFrame[] = [];
-  const push = (frame: Omit<LoopFrame, "cells" | "output">) =>
-    frames.push({ ...frame, cells, output });
+  const snapshot = (step: LoopStep & { i: number }): LoopFrame => ({
+    ...step,
+    cells,
+    output,
+  });
 
-  push({ phase: "init", i: 0, condition: null, activeIndex: null });
+  const frames: [LoopFrame, ...LoopFrame[]] = [
+    snapshot({ phase: "init", i: 0, condition: null, activeIndex: null }),
+  ];
   values.forEach((value, i) => {
-    push({ phase: "check", i, condition: true, activeIndex: null });
+    frames.push(
+      snapshot({ phase: "check", i, condition: true, activeIndex: null }),
+    );
     if (kind === "input") {
       cells = cells.map((cell, index) => (index === i ? value : cell));
     } else {
       output += `${value} `;
     }
-    push({ phase: "body", i, condition: null, activeIndex: i });
-    push({ phase: "increment", i: i + 1, condition: null, activeIndex: null });
+    frames.push(
+      snapshot({ phase: "body", i, condition: null, activeIndex: i }),
+    );
+    frames.push(
+      snapshot({
+        phase: "increment",
+        i: i + 1,
+        condition: null,
+        activeIndex: null,
+      }),
+    );
   });
-  push({
-    phase: "check",
-    i: values.length,
-    condition: false,
-    activeIndex: null,
-  });
-  push({ phase: "done", i: values.length, condition: null, activeIndex: null });
+  frames.push(
+    snapshot({
+      phase: "check",
+      i: values.length,
+      condition: false,
+      activeIndex: null,
+    }),
+    snapshot({
+      phase: "done",
+      i: values.length,
+      condition: null,
+      activeIndex: null,
+    }),
+  );
   return frames;
 }

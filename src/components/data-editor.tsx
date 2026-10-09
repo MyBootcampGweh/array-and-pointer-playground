@@ -149,10 +149,12 @@ export function ArrayValuesField({
   name,
   values,
   onChange,
+  legend = "Isi array",
 }: {
   name: string;
   values: readonly number[];
   onChange: (values: number[]) => void;
+  legend?: string;
 }) {
   const canAdd = values.length < MAX_ARRAY_LENGTH;
   const canRemove = values.length > MIN_ARRAY_LENGTH;
@@ -162,7 +164,7 @@ export function ArrayValuesField({
   return (
     <fieldset className="flex min-w-0 flex-col gap-3">
       <legend className="mb-2 text-sm font-medium">
-        Isi array ({values.length} elemen)
+        {legend} ({values.length} elemen)
       </legend>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {values.map((value, index) => (

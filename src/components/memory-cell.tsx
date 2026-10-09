@@ -47,7 +47,8 @@ export function ArrayView({
   activeRef,
 }: ArrayViewProps) {
   return (
-    <div className="overflow-x-auto pb-1">
+    // `relative` keeps the cells' sr-only text inside the scroller.
+    <div className="relative overflow-x-auto pb-1">
       <table className="border-separate border-spacing-x-2 border-spacing-y-1">
         <caption className="sr-only">
           Array {name}: indeks, nilai{showAddresses ? ", dan alamat" : ""} tiap

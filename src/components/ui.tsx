@@ -161,12 +161,14 @@ export function Stage({
   narration: ReactNode;
 }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-12 lg:gap-8">
-      <div className="flex min-w-0 flex-col gap-4 lg:col-span-5">
+    // Equal columns: the longest line, the `for` header, then fits at full
+    // size on a 1280px projector instead of scrolling.
+    <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
+      <div className="flex min-w-0 flex-col gap-4">
         {code}
         {editor}
       </div>
-      <div className="flex min-w-0 flex-col gap-4 lg:col-span-7">
+      <div className="flex min-w-0 flex-col gap-4">
         {visual}
         {controls}
         {narration}
