@@ -10,15 +10,13 @@ export default function ArrayMemoryPage() {
   return (
     <ModuleFrame
       number={4}
-      question="Indeks 2 itu alamatnya 2 juga, nggak?"
       analogy={
         <>
           Tiap loker lebarnya 4 ubin: loker 0 mulai di ubin 1000, loker 1 di
-          ubin 1004, dan seterusnya. Jadi nomor loker (indeks) beda sama nomor
-          ubin (alamat).
+          ubin 1004, dan seterusnya. Jadi nomor loker (Index) beda sama nomor
+          ubin (Address).
         </>
       }
-      roles={["index", "value", "address", "active"]}
     >
       <ArrayMemoryDemo />
     </ModuleFrame>

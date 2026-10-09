@@ -13,7 +13,7 @@ import {
   validateIdentifier,
 } from "@/lib/validation";
 
-/** Collapsed by default so the projected view stays uncluttered. */
+/** Open from the start: renaming and retyping is half of each module. */
 export function DataEditor({
   children,
   onRestore,
@@ -22,10 +22,13 @@ export function DataEditor({
   onRestore: () => void;
 }) {
   return (
-    <details className="group rounded-2xl bg-card shadow-subtle ring-1 ring-foreground/10">
+    <details
+      open
+      className="group rounded-2xl bg-card shadow-subtle ring-1 ring-foreground/10"
+    >
       <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-2xl px-4 py-3 font-medium select-none">
         <Pencil aria-hidden="true" className="size-4 text-accent-foreground" />
-        Ganti nama &amp; nilai
+        Ganti nama &amp; Value
         <ChevronDown
           aria-hidden="true"
           className="ml-auto size-5 text-muted-foreground transition-transform group-open:rotate-180"
@@ -42,8 +45,41 @@ export function DataEditor({
   );
 }
 
+/** MBG's input look, shared with inputs outside this editor. */
+export const INPUT_CLASS =
+  "h-11 w-full min-w-0 rounded-xl border border-input bg-background px-3 font-mono text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20";
+
+/**
+ * A text draft that only commits valid values. While the draft is invalid the
+ * error shows and the code keeps the last valid value; leaving the field
+ * restores that value.
+ */
+function useDraft<T>(
+  value: T,
+  format: (value: T) => string,
+  parse: (raw: string) => ParseResult<T>,
+  onCommit: (value: T) => void,
+) {
+  const [draft, setDraft] = useState<string | null>(null);
+  const result = draft === null ? null : parse(draft);
+  return {
+    text: draft ?? format(value),
+    error: result && !result.ok ? result.error : null,
+    change(raw: string) {
+      setDraft(raw);
+      const parsed = parse(raw);
+      if (parsed.ok && parsed.value !== value) {
+        onCommit(parsed.value);
+      }
+    },
+    blur() {
+      setDraft(null);
+    },
+  };
+}
+
 type FieldProps<T> = {
-  label: string;
+  label: ReactNode;
   value: T;
   format: (value: T) => string;
   parse: (raw: string) => ParseResult<T>;
@@ -51,11 +87,6 @@ type FieldProps<T> = {
   inputMode: "text" | "numeric";
 };
 
-/**
- * A text input that only commits valid values. While the draft is invalid the
- * error shows and the code keeps the last valid value; leaving the field
- * restores that value.
- */
 function Field<T>({
   label,
   value,
@@ -66,38 +97,29 @@ function Field<T>({
 }: FieldProps<T>) {
   const id = useId();
   const errorId = `${id}-error`;
-  const [draft, setDraft] = useState<string | null>(null);
-  const result = draft === null ? null : parse(draft);
-  const error = result && !result.ok ? result.error : null;
+  const draft = useDraft(value, format, parse, onCommit);
 
   return (
     <div className="flex min-w-0 flex-col gap-1">
-      <label htmlFor={id} className="font-mono text-sm">
+      <label htmlFor={id} className="font-mono text-sm wrap-anywhere">
         {label}
       </label>
       <input
         id={id}
-        value={draft ?? format(value)}
+        value={draft.text}
         inputMode={inputMode}
         autoComplete="off"
         autoCapitalize="off"
         spellCheck={false}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? errorId : undefined}
-        onChange={(event) => {
-          const raw = event.target.value;
-          setDraft(raw);
-          const parsed = parse(raw);
-          if (parsed.ok && parsed.value !== value) {
-            onCommit(parsed.value);
-          }
-        }}
-        onBlur={() => setDraft(null)}
-        className="h-11 w-full min-w-0 rounded-xl border border-input bg-background px-3 font-mono text-base transition-colors outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 aria-invalid:border-destructive aria-invalid:ring-destructive/20"
+        aria-invalid={draft.error ? true : undefined}
+        aria-describedby={draft.error ? errorId : undefined}
+        onChange={(event) => draft.change(event.target.value)}
+        onBlur={draft.blur}
+        className={INPUT_CLASS}
       />
-      {error ? (
+      {draft.error ? (
         <p id={errorId} role="alert" className="text-sm text-destructive">
-          {error}
+          {draft.error}
         </p>
       ) : null}
     </div>
@@ -133,7 +155,7 @@ export function IntField({
   value,
   onCommit,
 }: {
-  label: string;
+  label: ReactNode;
   value: number;
   onCommit: (value: number) => void;
 }) {
@@ -149,11 +171,62 @@ export function IntField({
   );
 }
 
+/**
+ * The Index typed straight into the code: `[ … ]`, brackets included so they
+ * wrap together with the input. Its error drops to its own line under the
+ * expression.
+ */
+export function IndexInput({
+  label,
+  value,
+  onCommit,
+}: {
+  label: string;
+  value: number;
+  onCommit: (value: number) => void;
+}) {
+  const id = useId();
+  const errorId = `${id}-error`;
+  const draft = useDraft(value, String, parseIntInput, onCommit);
+  return (
+    <>
+      <span className="inline-flex items-center gap-1">
+        <span aria-hidden="true">[</span>
+        <label htmlFor={id} className="sr-only">
+          {label}
+        </label>
+        <input
+          id={id}
+          value={draft.text}
+          inputMode="numeric"
+          autoComplete="off"
+          spellCheck={false}
+          aria-invalid={draft.error ? true : undefined}
+          aria-describedby={draft.error ? errorId : undefined}
+          onChange={(event) => draft.change(event.target.value)}
+          onBlur={draft.blur}
+          className="h-11 w-16 rounded-lg border-2 border-index bg-card px-1 text-center text-index-ink transition-colors outline-none focus-visible:ring-3 focus-visible:ring-index/40 aria-invalid:border-dashed aria-invalid:border-destructive"
+        />
+        <span aria-hidden="true">]</span>
+      </span>
+      {draft.error ? (
+        <p
+          id={errorId}
+          role="alert"
+          className="basis-full font-sans text-sm font-normal text-destructive"
+        >
+          {draft.error}
+        </p>
+      ) : null}
+    </>
+  );
+}
+
 export function ArrayValuesField({
   name,
   values,
   onChange,
-  legend = "Isi array",
+  legend = "Value",
 }: {
   name: string;
   values: readonly number[];
@@ -167,17 +240,19 @@ export function ArrayValuesField({
 
   return (
     <fieldset className="flex min-w-0 flex-col gap-3">
-      <legend className="mb-2 text-sm font-medium">
-        {legend}{" "}
+      <legend className="mb-2 text-sm font-medium wrap-anywhere">
+        {legend} <span className="font-mono text-variable-ink">{name}</span>{" "}
         <span className="text-muted-foreground">
           ({values.length} dari maks. {MAX_ARRAY_LENGTH})
         </span>
       </legend>
-      <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+      {/* Labels are just the Index: the array name is in the legend once,
+          so a long name never squeezes the fields. */}
+      <div className="grid grid-cols-4 gap-2">
         {values.map((value, index) => (
           <IntField
             key={index}
-            label={`${name}[${index}]`}
+            label={<span className="text-index-ink">[{index}]</span>}
             value={value}
             onCommit={(next) =>
               onChange(values.map((old, i) => (i === index ? next : old)))

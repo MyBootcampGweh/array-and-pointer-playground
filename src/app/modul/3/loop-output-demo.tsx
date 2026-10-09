@@ -1,6 +1,5 @@
 "use client";
 
-import { Terminal } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { CodePanel } from "@/components/code-panel";
@@ -10,9 +9,10 @@ import {
   NameField,
 } from "@/components/data-editor";
 import { LoopStatus } from "@/components/loop-status";
-import { ArrayView } from "@/components/memory-cell";
+import { ArrayDiagram } from "@/components/memory-diagram";
 import { StepControls, useStepper } from "@/components/step-controls";
-import { Narration, Panel, RoleChip, Stage } from "@/components/ui";
+import { Narration, RoleChip, Screen, Stage } from "@/components/ui";
+import { type CodeLine, arrayDeclaration } from "@/lib/c-syntax";
 import {
   LOOP_HEADER_PART,
   type LoopFrame,
@@ -33,12 +33,18 @@ export function LoopOutputDemo() {
   const frame = frames[stepper.step] ?? frames[0];
   const length = values.length;
 
-  const lines = [
-    `int ${name}[${length}] = {${values.join(", ")}};`,
+  const lines: CodeLine[] = [
+    arrayDeclaration(name, length, values),
     `int ukuran_array = ${length};`,
     "",
     "for (int i = 0; i < ukuran_array; i++) {",
-    `    printf("%d ", ${name}[i]);`,
+    [
+      '    printf("%d ", ',
+      { text: name, role: "variable" },
+      "[",
+      { text: "i", role: "index" },
+      "]);",
+    ],
     "}",
   ];
   const activeLine =
@@ -86,63 +92,41 @@ export function LoopOutputDemo() {
           />
         </DataEditor>
       }
+      hint="Tekan Lanjut, terus liat Value-nya pindah ke layar satu per satu."
       visual={
-        <Panel title="Array → layar">
-          <div className="flex flex-col gap-4">
-            <ArrayView
-              name={name}
-              values={frame.cells}
-              activeIndex={frame.activeIndex}
-              activeLabel="dibaca"
-            />
-            <Screen frame={frame} />
-            <LoopStatus
-              frame={frame}
-              length={length}
-              arrayName={name}
-              activeLabel="Dibaca"
-            />
-          </div>
-        </Panel>
+        <>
+          <ArrayDiagram
+            name={name}
+            values={frame.cells}
+            activeIndex={frame.activeIndex}
+            // Where i stops: past the end, shown but never read.
+            outside={
+              frame.i >= length ? { index: frame.i, tone: "quiet" } : null
+            }
+            marks={[
+              {
+                kind: "label",
+                role: "index",
+                column: frame.i,
+                label: `i = ${frame.i}`,
+              },
+            ]}
+          />
+          <Screen
+            output={frame.output}
+            // On a body step, the last value is the one printf just wrote.
+            freshFrom={
+              frame.phase === "body"
+                ? frame.output.trimEnd().lastIndexOf(" ") + 1
+                : null
+            }
+          />
+          <LoopStatus frame={frame} length={length} />
+        </>
       }
       controls={<StepControls stepper={stepper} />}
       narration={<Narration>{describe(frame, name, length)}</Narration>}
     />
-  );
-}
-
-/** The simulated screen: everything printf has written, newest value ringed. */
-function Screen({ frame }: { frame: LoopFrame }) {
-  const { output } = frame;
-  // On a body step, the last value in `output` is the one printf just wrote.
-  const cut =
-    frame.phase === "body"
-      ? output.trimEnd().lastIndexOf(" ") + 1
-      : output.length;
-  const fresh = output.slice(cut).trimEnd();
-
-  return (
-    <div>
-      <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <Terminal aria-hidden="true" className="size-4" />
-        Layar (output)
-      </p>
-      <samp className="mt-2 block min-h-12 rounded-xl bg-muted px-4 py-2 font-mono text-lg leading-8 whitespace-pre-wrap sm:text-xl">
-        {output.slice(0, cut)}
-        {fresh ? (
-          <>
-            <mark className="rounded-sm bg-transparent px-0.5 text-value ring-2 ring-active/60">
-              {fresh}
-            </mark>{" "}
-          </>
-        ) : null}
-        <span
-          aria-hidden="true"
-          className="inline-block h-5 w-2.5 bg-foreground/60 align-middle motion-safe:animate-pulse"
-        />
-        {output === "" ? <span className="sr-only">masih kosong</span> : null}
-      </samp>
-    </div>
   );
 }
 
@@ -164,13 +148,13 @@ function describe(frame: LoopFrame, name: string, length: number): ReactNode {
       ) : (
         <>
           Cek lagi: {length} &lt; {length}? <strong>Salah</strong>, loop
-          berhenti. Semua isi array udah tampil.
+          berhenti. Semua Value udah tampil.
         </>
       );
     case "body":
       return (
         <>
-          printf ambil <code>{`${name}[${frame.activeIndex}]`}</code>, isinya{" "}
+          printf ambil <code>{`${name}[${frame.activeIndex}]`}</code>, Value-nya{" "}
           <RoleChip role="value">{frame.cells[frame.activeIndex]}</RoleChip>,
           terus nampilin ke layar plus satu spasi.
         </>
@@ -182,8 +166,6 @@ function describe(frame: LoopFrame, name: string, length: number): ReactNode {
         </>
       );
     case "done":
-      return (
-        <>Beres! printf jalan {length} kali, semua isi array udah tampil.</>
-      );
+      return <>Beres! printf jalan {length} kali, semua Value udah tampil.</>;
   }
 }

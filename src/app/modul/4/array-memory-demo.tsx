@@ -1,50 +1,66 @@
 "use client";
 
-import { ArrowUp, Info } from "lucide-react";
-import { type ReactNode, useState } from "react";
+import { ArrowUp, ChevronDown, Info } from "lucide-react";
+import { useState } from "react";
 
+import { AddressMath } from "@/components/address-math";
 import { CodePanel } from "@/components/code-panel";
 import {
   ArrayValuesField,
   DataEditor,
   NameField,
 } from "@/components/data-editor";
-import { ArrayView } from "@/components/memory-cell";
-import { Narration, Panel, RoleChip, Stage } from "@/components/ui";
+import { ArrayDiagram } from "@/components/memory-diagram";
+import { Button, Narration, RoleChip, Stage } from "@/components/ui";
+import { type CodeLine, arrayDeclaration } from "@/lib/c-syntax";
 import { BASE_ADDRESS, INT_SIZE_BYTES, addressOf } from "@/lib/memory";
 
 const DEFAULT_NAME = "nilai";
 const DEFAULT_VALUES: readonly number[] = [10, 20, 30, 40, 50];
-const DEFAULT_INDEX = 2;
 
 export function ArrayMemoryDemo() {
   const [name, setName] = useState(DEFAULT_NAME);
   const [values, setValues] = useState(DEFAULT_VALUES);
-  const [index, setIndex] = useState(DEFAULT_INDEX);
+  // Nothing is picked at first: the strip alone comes first, the arithmetic
+  // only once the student asks for it by clicking a box.
+  const [picked, setPicked] = useState<number | null>(null);
+  const [showsBytes, setShowsBytes] = useState(false);
 
-  const access = `${name}[${index}]`;
-  const address = addressOf(index);
-  const lines = [
-    `int ${name}[${values.length}] = {${values.join(", ")}};`,
-    "",
-    `printf("%d", ${access});  // alamat: ${address}`,
+  const access = picked === null ? null : `${name}[${picked}]`;
+  const lines: CodeLine[] = [
+    arrayDeclaration(name, values.length, values),
+    ...(picked === null
+      ? []
+      : [
+          "",
+          [
+            'printf("%d", ',
+            { text: name, role: "variable" },
+            "[",
+            { text: String(picked), role: "index" },
+            "]);  // Address ",
+            { text: String(addressOf(picked)), role: "address" },
+          ] as const,
+        ]),
   ];
 
-  // This module only shows real elements, so removing the picked one moves
-  // the pick to the new last element.
+  // Removing the picked element moves the pick to the new last element.
   function changeValues(next: readonly number[]) {
     setValues(next);
-    setIndex((current) => Math.min(current, next.length - 1));
+    setPicked((current) =>
+      current === null ? null : Math.min(current, next.length - 1),
+    );
   }
   function restoreExample() {
     setName(DEFAULT_NAME);
     setValues(DEFAULT_VALUES);
-    setIndex(DEFAULT_INDEX);
+    setPicked(null);
+    setShowsBytes(false);
   }
 
   return (
     <Stage
-      code={<CodePanel lines={lines} activeLine={2} activePart={access} />}
+      code={<CodePanel lines={lines} activeLine={picked === null ? null : 2} />}
       editor={
         <DataEditor onRestore={restoreExample}>
           <NameField
@@ -60,114 +76,96 @@ export function ArrayMemoryDemo() {
           />
         </DataEditor>
       }
+      hint="Klik salah satu kotak buat liat Address-nya dihitung."
       visual={
-        <Panel title="Klik kotaknya">
-          <div className="flex flex-col gap-5">
-            <ArrayView
-              name={name}
-              values={values}
-              activeIndex={index}
-              activeLabel="dipilih"
-              onSelect={setIndex}
-              showAddresses
-            />
-            <AddressMath access={access} index={index} />
-            <ByteStrip access={access} address={address} />
-            <p className="flex gap-2 text-sm text-muted-foreground">
-              <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-              Alamat aslinya heksadesimal (kayak 0x7ffd5c2c) dan beda tiap
-              program jalan. Di sini dibikin 1000-an biar gampang dihitung.
-            </p>
-          </div>
-        </Panel>
+        <>
+          <ArrayDiagram
+            name={name}
+            values={values}
+            activeIndex={picked}
+            onSelect={setPicked}
+            showAddresses
+          />
+          {picked === null || access === null ? null : (
+            <div className="flex flex-col items-center gap-4 rounded-xl border p-4">
+              <p className="text-sm text-muted-foreground">
+                Address <code>{access}</code> dihitung gini:
+              </p>
+              <AddressMath
+                index={picked}
+                baseCaption="Address awal"
+                indexCaption="Index"
+              />
+              <Button
+                variant="ghost"
+                aria-expanded={showsBytes}
+                onClick={() => setShowsBytes((shown) => !shown)}
+              >
+                <ChevronDown
+                  aria-hidden="true"
+                  className={`transition-transform ${showsBytes ? "rotate-180" : ""}`}
+                />
+                {showsBytes ? "Tutup rincian byte" : "Liat 4 byte-nya"}
+              </Button>
+              {showsBytes ? (
+                <ByteStrip access={access} address={addressOf(picked)} />
+              ) : null}
+            </div>
+          )}
+          <p className="flex gap-2 text-sm text-muted-foreground">
+            <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+            Address aslinya heksadesimal (kayak 0x7ffd5c2c) dan beda tiap
+            program jalan. Di sini dibikin 1000-an biar gampang dihitung.
+          </p>
+        </>
       }
       narration={
         <Narration>
-          <code>{access}</code>:{" "}
-          <RoleChip role="index">indeks {index}</RoleChip> itu posisinya,{" "}
-          <RoleChip role="address">alamat {address}</RoleChip> itu lokasinya di
-          memori. Beda, ya!
+          {picked === null ? (
+            <>
+              Tiap kotak punya Address sendiri: mulai dari{" "}
+              <RoleChip role="address">{BASE_ADDRESS}</RoleChip>, terus nambah{" "}
+              {INT_SIZE_BYTES}, soalnya 1 int = {INT_SIZE_BYTES} byte.
+            </>
+          ) : (
+            <>
+              <code>{access}</code>:{" "}
+              <RoleChip role="index">Index {picked}</RoleChip> itu posisinya,{" "}
+              <RoleChip role="address">Address {addressOf(picked)}</RoleChip>{" "}
+              itu lokasinya di Memory. Beda, ya!
+            </>
+          )}
         </Narration>
       }
     />
   );
 }
 
-/** `start + index × size = address`, each term above its role word. */
-function AddressMath({ access, index }: { access: string; index: number }) {
-  return (
-    // On the card, not a muted fill: amber text on grey misses AA.
-    <div className="rounded-xl border p-4">
-      <p className="text-sm font-medium text-muted-foreground">
-        Alamat <code>{access}</code>
-      </p>
-      <p className="mt-2 flex flex-wrap items-start gap-x-3 gap-y-2 font-mono text-xl font-semibold sm:text-2xl">
-        <Term label="alamat awal" className="text-address">
-          {BASE_ADDRESS}
-        </Term>
-        <Operator>+</Operator>
-        <Term label="indeks" className="text-index">
-          {index}
-        </Term>
-        <Operator>×</Operator>
-        <Term label="byte">{INT_SIZE_BYTES}</Term>
-        <Operator>=</Operator>
-        <Term label="alamatnya" className="text-address">
-          {addressOf(index)}
-        </Term>
-      </p>
-    </div>
-  );
-}
-
-function Term({
-  label,
-  className = "",
-  children,
-}: {
-  label: string;
-  className?: string;
-  children: ReactNode;
-}) {
-  return (
-    <span className="flex flex-col items-center">
-      <span className={className}>{children}</span>
-      <span className="font-sans text-xs font-medium text-muted-foreground">
-        {label}
-      </span>
-    </span>
-  );
-}
-
-function Operator({ children }: { children: ReactNode }) {
-  return <span className="text-muted-foreground">{children}</span>;
-}
-
-/** One int fills four bytes, and its address is the first byte's. */
+/** One int fills four bytes, and its Address is the first byte's. */
 function ByteStrip({ access, address }: { access: string; address: number }) {
   return (
-    <figure className="flex flex-col gap-1.5">
-      <figcaption className="text-sm font-medium text-muted-foreground">
+    <figure className="flex w-full max-w-xs flex-col gap-1.5">
+      <figcaption className="text-center text-sm text-muted-foreground">
         1 int = {INT_SIZE_BYTES} byte
       </figcaption>
-      <div className="rounded-xl border-2 border-active">
-        <p className="border-b-2 border-active/30 py-1 text-center font-mono font-semibold text-active">
+      <div className="rounded-xl border-2 border-memory">
+        <p className="border-b-2 border-memory/40 py-1 text-center font-mono font-semibold wrap-anywhere">
           {access}
         </p>
-        <ol className="grid grid-cols-4 divide-x-2 divide-active/30">
+        <ol className="grid grid-cols-4 divide-x-2 divide-memory/40">
           {Array.from({ length: INT_SIZE_BYTES }, (_, byte) => (
             <li
               key={byte}
-              className={`py-1.5 text-center font-mono text-sm text-address ${byte === 0 ? "font-bold" : ""}`}
+              className={`py-1.5 text-center font-mono text-sm text-address-ink ${byte === 0 ? "font-bold" : ""}`}
             >
               {address + byte}
             </li>
           ))}
         </ol>
       </div>
-      <p className="flex items-center gap-1 text-xs font-semibold text-address">
-        <ArrowUp aria-hidden="true" className="size-3.5" />
-        alamat {access} = byte pertamanya
+      <p className="flex items-center gap-1 text-xs font-semibold text-address-ink">
+        <ArrowUp aria-hidden="true" className="size-3.5 shrink-0" />
+        Address {access} = byte pertamanya
       </p>
     </figure>
   );

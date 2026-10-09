@@ -1,7 +1,8 @@
-import { ArrowDown, ArrowRight } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import Link from "next/link";
 
-import { Legend, buttonClass } from "@/components/ui";
+import { ArrayDiagram } from "@/components/memory-diagram";
+import { type Role, RoleChip, buttonClass } from "@/components/ui";
 import { addressOf } from "@/lib/memory";
 import { MODULES, moduleHref } from "@/lib/modules";
 
@@ -17,8 +18,8 @@ export default function HomePage() {
             Array &amp; Pointer Playground
           </h1>
           <p className="text-lg leading-relaxed text-muted-foreground">
-            Indeks, nilai, alamat, pointer. Klik, ganti angkanya, terus lihat
-            sendiri apa yang kejadian di memori.
+            Index, Value, Address, Pointer. Klik, ganti angkanya, terus liat
+            sendiri apa yang kejadian di Memory.
           </p>
           <Link
             href={moduleHref(1)}
@@ -62,56 +63,43 @@ export default function HomePage() {
 const FIGURE_VALUES = [10, 20, 30];
 const FIGURE_TARGET = 1;
 
-/** The whole site in one picture: an array in memory and a pointer to it. */
+/** The colour key, in the palette's own words. */
+const KEY: readonly { role: Role; term: string; meaning: string }[] = [
+  { role: "variable", term: "Variable", meaning: "nama kotaknya" },
+  { role: "index", term: "Index", meaning: "posisi di array, mulai dari 0" },
+  { role: "value", term: "Memory", meaning: "kotak yang nyimpen Value" },
+  { role: "address", term: "Address", meaning: "lokasi kotaknya" },
+  { role: "pointer", term: "Pointer", meaning: "nyimpen Address kotak lain" },
+];
+
+/** The whole site in one picture: an array in Memory and a Pointer to it. */
 function MemoryFigure() {
-  const row = "grid grid-cols-3 justify-items-center gap-x-3";
   return (
-    <figure className="flex flex-col gap-5 rounded-2xl bg-card p-5 shadow-subtle ring-1 ring-foreground/10 sm:p-6">
-      <div aria-hidden="true" className="flex flex-col gap-1.5 font-mono">
-        <div className={row}>
-          <div className="col-start-2 flex flex-col items-center gap-1">
-            <span className="text-sm">
-              <span className="text-muted-foreground">int *</span>
-              <span className="font-semibold text-pointer">ptr</span>
-            </span>
-            <span className="rounded-xl border-2 border-pointer/60 px-3 py-1 text-xl font-semibold text-address">
-              {addressOf(FIGURE_TARGET)}
-            </span>
-            <ArrowDown className="size-6 text-pointer" />
-          </div>
-        </div>
-        <div className={`${row} text-sm text-index`}>
-          {FIGURE_VALUES.map((_, index) => (
-            <span key={index}>[{index}]</span>
+    <figure className="flex flex-col gap-5 rounded-2xl bg-card p-4 shadow-elevated ring-1 ring-foreground/10 sm:p-6">
+      <ArrayDiagram
+        name="nilai"
+        values={FIGURE_VALUES}
+        showAddresses
+        marks={[
+          {
+            kind: "pointer",
+            column: FIGURE_TARGET,
+            name: "ptr",
+            value: addressOf(FIGURE_TARGET),
+          },
+        ]}
+      />
+      <figcaption>
+        <ul aria-label="Arti warna" className="grid gap-2 sm:grid-cols-2">
+          {KEY.map(({ role, term, meaning }) => (
+            <li key={role} className="flex items-center gap-2">
+              <span className="shrink-0">
+                <RoleChip role={role}>{term}</RoleChip>
+              </span>
+              <span className="text-sm text-muted-foreground">{meaning}</span>
+            </li>
           ))}
-        </div>
-        <div className={row}>
-          {FIGURE_VALUES.map((value, index) => (
-            <span
-              key={index}
-              className={`flex min-h-14 w-full max-w-24 items-center justify-center rounded-xl border-2 text-2xl font-semibold text-value ${index === FIGURE_TARGET ? "border-pointer/60" : "border-border"}`}
-            >
-              {value}
-            </span>
-          ))}
-        </div>
-        <div className={`${row} text-sm text-address`}>
-          {FIGURE_VALUES.map((_, index) => (
-            <span key={index}>{addressOf(index)}</span>
-          ))}
-        </div>
-      </div>
-      <figcaption className="flex flex-col gap-3">
-        <span className="sr-only">
-          Array berisi {FIGURE_VALUES.join(", ")} di alamat{" "}
-          {FIGURE_VALUES.map((_, index) => addressOf(index)).join(", ")}, dan
-          pointer ptr yang nyimpen alamat {addressOf(FIGURE_TARGET)}.
-        </span>
-        <span className="text-base text-muted-foreground">
-          Array itu kayak loker berjejer. Pointer itu kertas yang nyatet alamat
-          salah satu loker.
-        </span>
-        <Legend roles={["index", "value", "address", "pointer"]} />
+        </ul>
       </figcaption>
     </figure>
   );

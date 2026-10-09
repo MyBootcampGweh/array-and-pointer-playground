@@ -1,6 +1,5 @@
 "use client";
 
-import { Keyboard } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { CodePanel } from "@/components/code-panel";
@@ -10,9 +9,10 @@ import {
   NameField,
 } from "@/components/data-editor";
 import { LoopStatus } from "@/components/loop-status";
-import { ArrayView } from "@/components/memory-cell";
+import { ArrayDiagram } from "@/components/memory-diagram";
 import { StepControls, useStepper } from "@/components/step-controls";
-import { Narration, Panel, RoleChip, Stage } from "@/components/ui";
+import { Narration, RoleChip, Stage } from "@/components/ui";
+import { type CodeLine, arrayDeclaration } from "@/lib/c-syntax";
 import {
   LOOP_HEADER_PART,
   type LoopFrame,
@@ -33,12 +33,18 @@ export function LoopInputDemo() {
   const frame = frames[stepper.step] ?? frames[0];
   const length = input.length;
 
-  const lines = [
-    `int ${name}[${length}];`,
+  const lines: CodeLine[] = [
+    arrayDeclaration(name, length),
     `int ukuran_array = ${length};`,
     "",
     "for (int i = 0; i < ukuran_array; i++) {",
-    `    scanf("%d", &${name}[i]);`,
+    [
+      '    scanf("%d", &',
+      { text: name, role: "variable" },
+      "[",
+      { text: "i", role: "index" },
+      "]);",
+    ],
     "}",
   ];
   const activeLine =
@@ -83,82 +89,36 @@ export function LoopInputDemo() {
             name={name}
             values={input}
             onChange={changeInput}
-            legend="Input keyboard"
+            legend="Input keyboard buat"
           />
         </DataEditor>
       }
+      hint="Tekan Lanjut buat jalanin loop-nya selangkah demi selangkah."
       visual={
-        <Panel title="Keyboard → array">
-          <div className="flex flex-col gap-4">
-            <KeyboardQueue
-              input={input}
-              readCount={frame.cells.filter((cell) => cell !== null).length}
-              readingIndex={frame.activeIndex}
-            />
-            <ArrayView
-              name={name}
-              values={frame.cells}
-              activeIndex={frame.activeIndex}
-              activeLabel="diisi"
-            />
-            <LoopStatus
-              frame={frame}
-              length={length}
-              arrayName={name}
-              activeLabel="Diisi"
-            />
-          </div>
-        </Panel>
+        <>
+          <ArrayDiagram
+            name={name}
+            values={frame.cells}
+            activeIndex={frame.activeIndex}
+            // Where i stops: past the end, shown but never written.
+            outside={
+              frame.i >= length ? { index: frame.i, tone: "quiet" } : null
+            }
+            marks={[
+              {
+                kind: "label",
+                role: "index",
+                column: frame.i,
+                label: `i = ${frame.i}`,
+              },
+            ]}
+          />
+          <LoopStatus frame={frame} length={length} />
+        </>
       }
       controls={<StepControls stepper={stepper} />}
       narration={<Narration>{describe(frame, name, length)}</Narration>}
     />
-  );
-}
-
-/** What the student "types", drawn as keycaps; read keys are struck through. */
-function KeyboardQueue({
-  input,
-  readCount,
-  readingIndex,
-}: {
-  input: readonly number[];
-  readCount: number;
-  readingIndex: number | null;
-}) {
-  return (
-    <div>
-      <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <Keyboard aria-hidden="true" className="size-4" />
-        Input dari keyboard
-      </p>
-      <ol className="mt-2 flex flex-wrap gap-2">
-        {input.map((value, index) => {
-          const isReading = index === readingIndex;
-          const isRead = index < readCount && !isReading;
-          const tone = isReading
-            ? "border-active bg-active/10 font-semibold text-active"
-            : isRead
-              ? "border-border text-muted-foreground line-through"
-              : "border-border bg-card";
-          return (
-            <li
-              key={index}
-              className={`flex min-w-11 justify-center rounded-lg border border-b-4 px-2.5 py-1 font-mono text-base transition-colors ${tone}`}
-            >
-              {value}
-              <span className="sr-only">
-                {isReading
-                  ? " (lagi dibaca)"
-                  : isRead
-                    ? " (udah dibaca)"
-                    : " (nunggu giliran)"}
-              </span>
-            </li>
-          );
-        })}
-      </ol>
-    </div>
   );
 }
 
@@ -188,9 +148,8 @@ function describe(frame: LoopFrame, name: string, length: number): ReactNode {
         <>
           scanf baca{" "}
           <RoleChip role="value">{frame.cells[frame.activeIndex]}</RoleChip>{" "}
-          dari keyboard, terus disimpen ke{" "}
-          <code>{`${name}[${frame.activeIndex}]`}</code>. Tanda &amp; itu alamat
-          tujuannya (dibahas di Modul 5).
+          dari keyboard, terus disimpen di{" "}
+          <RoleChip role="index">Index {frame.activeIndex}</RoleChip>.
         </>
       );
     case "increment":

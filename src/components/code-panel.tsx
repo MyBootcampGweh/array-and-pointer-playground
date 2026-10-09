@@ -1,6 +1,11 @@
 import { ArrowRight } from "lucide-react";
+import { type ReactNode } from "react";
 
+import { ROLE_TEXT } from "@/components/ui";
 import {
+  type CodeLine,
+  type CodePart,
+  type CodeRole,
   type CodeToken,
   type CodeTokenKind,
   sliceTokens,
@@ -20,11 +25,19 @@ const TOKEN_CLASS: Record<CodeTokenKind, string> = {
   plain: "",
 };
 
+const ROLE_UNDERLINE: Record<CodeRole, string> = {
+  variable: "decoration-variable",
+  index: "decoration-index",
+  value: "decoration-memory",
+  address: "decoration-address",
+  pointer: "decoration-pointer",
+};
+
 type CodePanelProps = {
-  lines: readonly string[];
+  lines: readonly CodeLine[];
   /** Zero-based index of the line being executed. */
   activeLine?: number | null;
-  /** Part of the active line to emphasise, such as `i < ukuran_array`. */
+  /** Part of the active line to ring, such as `i < ukuran_array`. */
   activePart?: string | null;
 };
 
@@ -35,7 +48,7 @@ export function CodePanel({
   activePart = null,
 }: CodePanelProps) {
   return (
-    <section className="min-w-0 overflow-hidden rounded-2xl bg-card shadow-elevated ring-1 ring-foreground/10">
+    <section className="min-w-0 overflow-hidden rounded-2xl bg-card shadow-subtle ring-1 ring-foreground/10">
       <div className="flex items-center gap-3 border-b bg-muted px-4 py-2.5">
         <span aria-hidden="true" className="flex gap-1.5">
           <span className="size-2.5 rounded-full bg-red-400/70" />
@@ -61,11 +74,11 @@ export function CodePanel({
               <span
                 key={index}
                 aria-current={isActive ? "step" : undefined}
-                className={`flex border-l-4 pr-4 ${isActive ? "border-active bg-active/10" : "border-transparent"}`}
+                className={`flex border-l-4 pr-4 ${isActive ? "border-foreground/70 bg-muted" : "border-transparent"}`}
               >
                 <span
                   aria-hidden="true"
-                  className={`flex w-12 shrink-0 items-center justify-end gap-1 border-r pr-2.5 tabular-nums select-none ${isActive ? "font-semibold text-active" : "text-muted-foreground"}`}
+                  className={`flex w-12 shrink-0 items-center justify-end gap-1 border-r pr-2.5 tabular-nums select-none ${isActive ? "font-semibold text-foreground" : "text-muted-foreground"}`}
                 >
                   {isActive ? <ArrowRight className="size-3.5" /> : null}
                   {index + 1}
@@ -85,22 +98,71 @@ export function CodePanel({
   );
 }
 
-function renderLine(line: string, part: string | null) {
-  const tokens = tokenise(line);
-  const start = part ? line.indexOf(part) : -1;
-  if (!part || start === -1) {
-    return renderTokens(tokens);
+function partText(part: CodePart): string {
+  return typeof part === "string" ? part : part.text;
+}
+
+/**
+ * Syntax colours come from the whole line, so a token split across parts
+ * still reads right; role parts and the ringed part are cut out of it.
+ */
+function renderLine(line: CodeLine, ringed: string | null): ReactNode {
+  const parts = typeof line === "string" ? [line] : line;
+  const text = parts.map(partText).join("");
+  const tokens = tokenise(text);
+
+  const roles: { from: number; to: number; role: CodeRole }[] = [];
+  let offset = 0;
+  for (const part of parts) {
+    const length = partText(part).length;
+    if (typeof part !== "string") {
+      roles.push({ from: offset, to: offset + length, role: part.role });
+    }
+    offset += length;
   }
-  const end = start + part.length;
+
+  const ringStart = ringed ? text.indexOf(ringed) : -1;
+  const ring =
+    ringed && ringStart !== -1
+      ? { from: ringStart, to: ringStart + ringed.length }
+      : null;
+
+  const cuts = new Set([0, text.length]);
+  for (const { from, to } of [...roles, ...(ring ? [ring] : [])]) {
+    cuts.add(from);
+    cuts.add(to);
+  }
+  const points = [...cuts].sort((a, b) => a - b);
+  const pieces = points.slice(1).map((to, i) => {
+    const from = points[i] ?? 0;
+    const role = roles.find((r) => r.from <= from && from < r.to)?.role;
+    const slice = text.slice(from, to);
+    const node = role ? (
+      <span
+        key={from}
+        className={`font-semibold underline decoration-2 underline-offset-4 ${ROLE_TEXT[role]} ${ROLE_UNDERLINE[role]}`}
+      >
+        {slice}
+      </span>
+    ) : (
+      <span key={from}>{renderTokens(sliceTokens(tokens, from, to))}</span>
+    );
+    return { from, to, node };
+  });
+
+  if (!ring) {
+    return pieces.map(({ node }) => node);
+  }
   return (
     <>
-      {renderTokens(sliceTokens(tokens, 0, start))}
-      {/* A ring, not a fill: tokens then sit on the line's tint alone and
-          keep their contrast. */}
-      <mark className="rounded-sm bg-transparent px-0.5 text-foreground ring-2 ring-active/60">
-        {renderTokens(sliceTokens(tokens, start, end))}
+      {pieces.filter((p) => p.to <= ring.from).map(({ node }) => node)}
+      {/* A ring, not a fill: tokens keep the line's contrast. */}
+      <mark className="rounded-sm bg-transparent px-0.5 text-foreground ring-2 ring-foreground/35">
+        {pieces
+          .filter((p) => p.from >= ring.from && p.to <= ring.to)
+          .map(({ node }) => node)}
       </mark>
-      {renderTokens(sliceTokens(tokens, end, line.length))}
+      {pieces.filter((p) => p.from >= ring.to).map(({ node }) => node)}
     </>
   );
 }

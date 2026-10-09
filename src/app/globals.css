@@ -82,16 +82,21 @@
   --color-ring: var(--ring);
 
   /*
-   * Teaching roles. MBG has no tokens for these, so each one borrows an MBG
-   * value that is already contrast-checked in both themes: index and pointer
-   * reuse the editor's class and keyword colours. Every use pairs the colour
+   * Teaching roles, the project's own palette. The base colour fills, borders
+   * and draws arrows; `-ink` is the same hue for text, since most bases fall
+   * under 4.5:1 as text on white (yellow 2.2:1). Every use pairs the colour
    * with its word, never colour alone.
    */
+  --color-variable: var(--variable);
+  --color-variable-ink: var(--variable-ink);
   --color-index: var(--index);
-  --color-value: var(--success);
-  --color-address: var(--warning);
+  --color-index-ink: var(--index-ink);
+  --color-memory: var(--memory);
+  --color-memory-ink: var(--memory-ink);
+  --color-address: var(--address);
+  --color-address-ink: var(--address-ink);
   --color-pointer: var(--pointer);
-  --color-active: var(--active);
+  --color-pointer-ink: var(--pointer-ink);
 
   /* MBG's editor palette, so code reads like it does in MBG's editor. */
   --color-code-keyword: var(--code-keyword);
@@ -136,9 +141,20 @@
   --input: oklch(0.92 0.004 286.32);
   --ring: var(--color-brand-500);
 
-  --index: #116677;
-  --pointer: #770088;
-  --active: var(--color-brand-600);
+  /*
+   * Bases are identical in both themes. Inks hold ≥ 4.8:1 on the card, on
+   * `muted`, and on a 12% tint of their own base, so chips stay readable.
+   */
+  --variable: #3478f6;
+  --variable-ink: #295ec0;
+  --index: #e53935;
+  --index-ink: #b52d2a;
+  --memory: #2ead67;
+  --memory-ink: #1e7244;
+  --address: #f28c28;
+  --address-ink: #945518;
+  --pointer: #d9a800;
+  --pointer-ink: #7f6200;
 
   --code-keyword: #770088;
   /* MBG's #008855 measures 3.85:1 on the active-line tint; same hue, darker. */
@@ -173,10 +189,12 @@
   --input: oklch(1 0 0 / 15%);
   --ring: var(--color-brand-400);
 
-  --index: #6fd3c4;
-  --pointer: #d2a8ff;
-  /* brand-600 is only 3:1 as text on the dark card; MBG's dark ring colour. */
-  --active: var(--color-brand-400);
+  /* Orange and yellow already read on the dark card; the rest are lifted. */
+  --variable-ink: #6b9cf8;
+  --index-ink: #ed7775;
+  --memory-ink: #42b575;
+  --address-ink: var(--address);
+  --pointer-ink: var(--pointer);
 
   --code-keyword: #d2a8ff;
   --code-type: #56d4a0;

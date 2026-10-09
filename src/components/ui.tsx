@@ -1,4 +1,4 @@
-import { Lightbulb, TriangleAlert } from "lucide-react";
+import { MousePointerClick, Terminal, TriangleAlert } from "lucide-react";
 import { type ComponentProps, type ReactNode } from "react";
 
 type ButtonVariant = "primary" | "outline" | "ghost";
@@ -34,39 +34,33 @@ export function Button({
   );
 }
 
-export function Panel({
-  title,
-  children,
-  className = "",
-}: {
-  title: string;
-  children: ReactNode;
-  className?: string;
-}) {
-  return (
-    <section
-      className={`min-w-0 rounded-2xl bg-card p-4 shadow-subtle ring-1 ring-foreground/10 sm:p-5 ${className}`}
-    >
-      <h2 className="mb-3 text-sm font-semibold tracking-wide text-muted-foreground uppercase">
-        {title}
-      </h2>
-      {children}
-    </section>
-  );
-}
-
+/** The five teaching roles, plus a warning for unsafe access. */
 export type Role =
-  "index" | "value" | "address" | "pointer" | "active" | "danger";
+  "variable" | "index" | "value" | "address" | "pointer" | "danger";
 
-const ROLE_CHIP: Record<Role, string> = {
-  index: "border-index/40 text-index",
-  value: "border-value/40 text-value",
-  address: "border-address/50 text-address",
-  pointer: "border-pointer/40 text-pointer",
-  active: "border-active/40 text-active",
-  danger: "border-destructive/40 text-destructive",
+/** Text in a role's ink; the same look in code, diagrams and narration. */
+export const ROLE_TEXT: Record<Role, string> = {
+  variable: "text-variable-ink",
+  index: "text-index-ink",
+  value: "text-memory-ink",
+  address: "text-address-ink",
+  pointer: "text-pointer-ink",
+  danger: "text-destructive",
 };
 
+const ROLE_CHIP: Record<Role, string> = {
+  variable: "bg-variable/12",
+  index: "bg-index/12",
+  value: "bg-memory/12",
+  address: "bg-address/12",
+  pointer: "bg-pointer/12",
+  danger: "bg-destructive/10",
+};
+
+/**
+ * A value in its role's colour, e.g. an Address inside a sentence. Plain
+ * inline, not inline-flex, so a following full stop never wraps on its own.
+ */
 export function RoleChip({
   role,
   children,
@@ -76,70 +70,16 @@ export function RoleChip({
 }) {
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-4xl border bg-card px-2.5 py-0.5 font-mono text-sm font-medium ${ROLE_CHIP[role]}`}
+      className={`rounded-md box-decoration-clone px-1.5 py-0.5 font-mono font-semibold wrap-anywhere ${ROLE_CHIP[role]} ${ROLE_TEXT[role]}`}
     >
       {children}
     </span>
   );
 }
 
-const LEGEND: readonly { role: Role; label: ReactNode }[] = [
-  { role: "index", label: "indeks = posisi" },
-  { role: "value", label: "nilai = isi" },
-  { role: "address", label: "alamat (ilustrasi)" },
-  { role: "pointer", label: "pointer" },
-  { role: "active", label: "aktif" },
-  {
-    role: "danger",
-    label: (
-      <>
-        <TriangleAlert aria-hidden="true" className="size-3.5" />
-        di luar batas
-      </>
-    ),
-  },
-];
-
-/** Only the roles a page actually draws, so the key never lists noise. */
-export function Legend({ roles }: { roles?: readonly Role[] }) {
-  return (
-    <ul aria-label="Arti warna" className="flex flex-wrap gap-2">
-      {LEGEND.filter(({ role }) => !roles || roles.includes(role)).map(
-        ({ role, label }) => (
-          <li key={role}>
-            <RoleChip role={role}>{label}</RoleChip>
-          </li>
-        ),
-      )}
-    </ul>
-  );
-}
-
-/** A short aside, such as the analogy that opens each module. */
-export function Callout({
-  title,
-  children,
-}: {
-  title: string;
-  children: ReactNode;
-}) {
-  return (
-    <div className="flex gap-3 rounded-xl border border-primary/20 bg-accent p-4 text-base leading-relaxed">
-      <Lightbulb
-        aria-hidden="true"
-        className="mt-0.5 size-5 shrink-0 text-accent-foreground"
-      />
-      <div>
-        <p className="font-semibold text-accent-foreground">{title}</p>
-        <div>{children}</div>
-      </div>
-    </div>
-  );
-}
-
 /**
- * Live region for the step-by-step explanation. It stays mounted and only its
- * content and tone change, which is what screen readers need to announce it.
+ * Live region for the explanation of what just happened. It stays mounted and
+ * only its content and tone change, which is what screen readers announce.
  */
 export function Narration({
   children,
@@ -152,7 +92,7 @@ export function Narration({
   return (
     <p
       aria-live="polite"
-      className={`flex gap-3 rounded-xl p-4 text-base leading-relaxed sm:text-lg ${isWarning ? "bg-destructive/5 ring-1 ring-destructive/30" : "bg-surface-muted"}`}
+      className={`flex gap-3 border-l-4 py-1 pl-4 text-base leading-relaxed sm:text-lg ${isWarning ? "border-destructive" : "border-foreground/15"}`}
     >
       {isWarning ? (
         <TriangleAlert
@@ -160,41 +100,105 @@ export function Narration({
           className="mt-1 size-5 shrink-0 text-destructive"
         />
       ) : null}
-      <span>{children}</span>
+      <span className="min-w-0">{children}</span>
     </p>
   );
 }
 
 /**
- * The module stage: code and editor on the left, the diagram and its controls
- * on the right from `lg` up; stacked in reading order below that.
+ * Code-like controls, such as `nilai[ 2 ] → 30`: the student edits the
+ * expression itself and the diagram answers.
+ */
+export function ExpressionBar({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex flex-wrap items-center gap-x-1.5 gap-y-2 rounded-xl bg-muted px-3 py-3 font-mono text-lg font-semibold sm:px-4 sm:text-2xl">
+      {children}
+    </div>
+  );
+}
+
+/**
+ * The module stage. Code and its editor on the left; on the right one card
+ * holds the whole visualisation: what to do, the diagram, its controls and
+ * the explanation, so the eye never has to hunt between panels. On a phone
+ * the card comes right after the code, before the editor.
  */
 export function Stage({
   code,
   editor,
+  hint,
   visual,
   controls,
   narration,
 }: {
   code: ReactNode;
   editor: ReactNode;
+  /** One short instruction: what the student can do here. */
+  hint: ReactNode;
   visual: ReactNode;
   controls?: ReactNode;
   narration: ReactNode;
 }) {
   return (
-    // Equal columns: the longest line, the `for` header, then fits at full
-    // size on a 1280px projector instead of scrolling.
-    <div className="grid gap-6 lg:grid-cols-2 lg:gap-8">
-      <div className="flex min-w-0 flex-col gap-4">
-        {code}
-        {editor}
-      </div>
-      <div className="flex min-w-0 flex-col gap-4">
+    // `auto_1fr`: when the card is the taller side, the spare height goes
+    // under the editor instead of opening a gap between code and editor.
+    <div className="grid gap-6 lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-8 lg:gap-y-4">
+      <div className="min-w-0 lg:col-start-1 lg:row-start-1">{code}</div>
+      <section
+        aria-label="Visualisasi"
+        className="flex min-w-0 flex-col gap-5 rounded-2xl bg-card p-3 shadow-elevated ring-1 ring-foreground/10 sm:p-5 lg:col-start-2 lg:row-span-2 lg:row-start-1"
+      >
+        <p className="flex gap-2 text-sm text-muted-foreground">
+          <MousePointerClick
+            aria-hidden="true"
+            className="mt-0.5 size-4 shrink-0"
+          />
+          <span>{hint}</span>
+        </p>
         {visual}
         {controls}
         {narration}
-      </div>
+      </section>
+      <div className="min-w-0 lg:col-start-1 lg:row-start-2">{editor}</div>
+    </div>
+  );
+}
+
+/**
+ * The simulated console. Text from `freshFrom` on is what the current step
+ * just printed and gets a ring; trailing spaces stay outside the ring.
+ */
+export function Screen({
+  output,
+  freshFrom = null,
+}: {
+  output: string;
+  freshFrom?: number | null;
+}) {
+  const fresh = freshFrom === null ? "" : output.slice(freshFrom);
+  const freshText = fresh.trimEnd();
+  return (
+    <div>
+      <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <Terminal aria-hidden="true" className="size-4" />
+        Layar (output)
+      </p>
+      <samp className="mt-2 block min-h-12 rounded-xl bg-muted px-4 py-2 font-mono text-lg leading-8 whitespace-pre-wrap sm:text-xl">
+        {output.slice(0, output.length - fresh.length)}
+        {freshText ? (
+          <>
+            <mark className="rounded-sm bg-transparent px-0.5 text-memory-ink ring-2 ring-memory">
+              {freshText}
+            </mark>
+            {fresh.slice(freshText.length)}
+          </>
+        ) : null}
+        <span
+          aria-hidden="true"
+          className="inline-block h-5 w-2.5 bg-foreground/60 align-middle motion-safe:animate-pulse"
+        />
+        {output === "" ? <span className="sr-only">masih kosong</span> : null}
+      </samp>
     </div>
   );
 }

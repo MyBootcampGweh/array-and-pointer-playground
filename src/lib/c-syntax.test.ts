@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { sliceTokens, tokenise } from "./c-syntax.ts";
+import { arrayDeclaration, sliceTokens, tokenise } from "./c-syntax.ts";
 
 const kinds = (line: string) =>
   tokenise(line)
@@ -39,6 +39,18 @@ test("tokenise never loses characters", () => {
       .map((token) => token.text)
       .join(""),
     line,
+  );
+});
+
+test("arrayDeclaration spells the C and marks the name and each Value", () => {
+  const text = (parts: ReturnType<typeof arrayDeclaration>) =>
+    parts.map((part) => (typeof part === "string" ? part : part.text)).join("");
+  assert.equal(text(arrayDeclaration("nilai", 5)), "int nilai[5];");
+  const filled = arrayDeclaration("skor", 3, [10, -7, 30]);
+  assert.equal(text(filled), "int skor[3] = {10, -7, 30};");
+  assert.deepEqual(
+    filled.flatMap((part) => (typeof part === "string" ? [] : [part.role])),
+    ["variable", "value", "value", "value"],
   );
 });
 

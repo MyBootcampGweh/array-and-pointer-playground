@@ -1,9 +1,9 @@
-import { ArrowLeft, ArrowRight, MessageCircleQuestionMark } from "lucide-react";
+import { ArrowLeft, ArrowRight, Lightbulb } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { type ReactNode } from "react";
 
-import { Callout, Legend, type Role, buttonClass } from "@/components/ui";
+import { buttonClass } from "@/components/ui";
 import {
   MODULES,
   type ModuleNumber,
@@ -18,23 +18,13 @@ export function moduleMetadata(number: ModuleNumber): Metadata {
 
 type ModuleFrameProps = {
   number: ModuleNumber;
-  /** One-line hook that opens the module. */
-  question: string;
   /** One or two short sentences; the diagram does the rest. */
   analogy: ReactNode;
-  /** Colour roles the diagram uses, so the legend shows only those. */
-  roles: readonly Role[];
   /** The interactive simulation. */
   children: ReactNode;
 };
 
-export function ModuleFrame({
-  number,
-  question,
-  analogy,
-  roles,
-  children,
-}: ModuleFrameProps) {
+export function ModuleFrame({ number, analogy, children }: ModuleFrameProps) {
   const { title } = getModule(number);
   const previous = MODULES.find((entry) => entry.number === number - 1);
   const next = MODULES.find((entry) => entry.number === number + 1);
@@ -64,26 +54,26 @@ export function ModuleFrame({
         </ol>
       </nav>
 
-      <div className="grid gap-4 lg:grid-cols-2 lg:items-end lg:gap-8">
-        <header className="flex flex-col gap-2">
-          <p className="text-sm font-semibold tracking-wide text-accent-foreground">
-            Modul {number} dari {MODULES.length}
-          </p>
-          <h1 className="text-display-sm text-balance sm:text-display-md">
-            {title}
-          </h1>
-          <p className="flex gap-2 text-lg text-muted-foreground">
-            <MessageCircleQuestionMark
-              aria-hidden="true"
-              className="mt-1 size-5 shrink-0 text-accent-foreground"
-            />
-            {question}
-          </p>
-        </header>
-        <Callout title="Bayangin aja">{analogy}</Callout>
-      </div>
-
-      <Legend roles={roles} />
+      <header className="flex max-w-3xl flex-col gap-3">
+        <p className="text-sm font-semibold tracking-wide text-accent-foreground">
+          Modul {number} dari {MODULES.length}
+        </p>
+        <h1 className="text-display-sm text-balance sm:text-display-md">
+          {title}
+        </h1>
+        <p className="flex gap-3 text-lg leading-relaxed text-muted-foreground">
+          <Lightbulb
+            aria-hidden="true"
+            className="mt-1 size-5 shrink-0 text-accent-foreground"
+          />
+          <span>
+            <span className="font-semibold text-foreground">
+              Bayangin aja:{" "}
+            </span>
+            {analogy}
+          </span>
+        </p>
+      </header>
 
       {children}
 

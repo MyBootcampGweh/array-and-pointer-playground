@@ -14,7 +14,7 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Array & Pointer Playground",
+    default: "MyBootcampGweh - Array & Pointer Playground",
     template: "%s · Array & Pointer Playground",
   },
   description:
@@ -24,6 +24,40 @@ export const metadata: Metadata = {
 // Runs in <head> before the first paint, so a saved (or system) dark theme
 // never flashes light first. Falls back to light if storage is blocked.
 const THEME_SCRIPT = `try{var t=localStorage.getItem("theme");if(t==="dark"||(t!=="light"&&matchMedia("(prefers-color-scheme: dark)").matches))document.documentElement.dataset.theme="dark"}catch(e){}`;
+
+/**
+ * MBG's brand mark, a terminal prompt, copied from MBG's
+ * `web/src/components/brand/logo.tsx`. Inline SVG, so it needs no asset path
+ * under the Pages base path.
+ */
+function MbgLogo() {
+  return (
+    <svg
+      viewBox="0 0 32 32"
+      aria-hidden="true"
+      focusable="false"
+      className="size-8 shrink-0 text-brand-600"
+    >
+      <rect width="32" height="32" rx="9" fill="currentColor" />
+      <path
+        d="M10.5 12 14 16l-3.5 4"
+        fill="none"
+        stroke="white"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      <path
+        d="M17 20.25h5"
+        fill="none"
+        stroke="white"
+        strokeWidth="2.25"
+        strokeLinecap="round"
+        opacity="0.85"
+      />
+    </svg>
+  );
+}
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
@@ -50,13 +84,14 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
               href="/"
               className="flex items-center gap-2.5 rounded-lg py-1.5 font-semibold"
             >
-              <span
-                aria-hidden="true"
-                className="flex size-8 shrink-0 items-center justify-center rounded-lg bg-primary font-mono text-sm font-bold text-primary-foreground"
-              >
-                *p
+              <MbgLogo />
+              {/* Stacks on phones instead of squeezing the theme switch. */}
+              <span className="flex flex-col text-sm leading-tight sm:flex-row sm:gap-1.5 sm:text-base">
+                <span>
+                  MyBootcampGweh<span className="max-sm:sr-only"> - </span>
+                </span>
+                <span>Array &amp; Pointer Playground</span>
               </span>
-              Array &amp; Pointer Playground
             </Link>
             <ThemeToggle />
           </div>
@@ -64,12 +99,6 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         <main id="konten" className="flex-1">
           {children}
         </main>
-        <footer className="border-t bg-surface">
-          <p className="mx-auto max-w-content px-4 py-4 text-sm text-muted-foreground sm:px-6">
-            Ini simulasi di browser, bukan program C beneran. Alamat memorinya
-            juga cuma ilustrasi.
-          </p>
-        </footer>
       </body>
     </html>
   );
