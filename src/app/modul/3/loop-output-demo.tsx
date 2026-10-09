@@ -8,7 +8,6 @@ import {
   DataEditor,
   NameField,
 } from "@/components/data-editor";
-import { LoopStatus } from "@/components/loop-status";
 import { ArrayDiagram } from "@/components/memory-diagram";
 import { StepControls, useStepper } from "@/components/step-controls";
 import { Narration, RoleChip, Screen, Stage } from "@/components/ui";
@@ -100,9 +99,10 @@ export function LoopOutputDemo() {
             values={frame.cells}
             activeIndex={frame.activeIndex}
             // Where i stops: past the end, shown but never read.
-            outside={
-              frame.i >= length ? { index: frame.i, tone: "quiet" } : null
-            }
+            outside={{
+              index: length,
+              tone: frame.i >= length ? "quiet" : "hidden",
+            }}
             marks={[
               {
                 kind: "label",
@@ -121,7 +121,6 @@ export function LoopOutputDemo() {
                 : null
             }
           />
-          <LoopStatus frame={frame} length={length} />
         </>
       }
       controls={<StepControls stepper={stepper} />}
