@@ -64,6 +64,8 @@ deployed to GitHub Pages.
 
 - Visuals carry the explanation; text only labels, nudges and confirms. If a
   diagram can show it, draw it; otherwise one short sentence, not a paragraph.
+- Narration is one sentence (a warning may take two) with at most two
+  `RoleChip`s. It says why, not what the picture already shows.
 - Write Indonesian the way a Gen Z college student talks to a friend: `kamu`,
   `nggak`, `udah`, `pakai`, `terus`, `kayak`, `buat`. Simple words; nothing
   formal, academic or generated-sounding (`adalah`, `merupakan`, `tidak`,
@@ -74,17 +76,19 @@ deployed to GitHub Pages.
 - Module page: the title, its analogy ("Bayangin aja", one or two sentences)
   right below it, then the stage. No question, legend row or quiz.
 - Stage: code on the left with `DataEditor` under it, open by default; on the
-  right one card with a one-line hint, the diagram, its controls and the
-  narration. On a phone the card comes before the editor.
+  right one card with a one-line hint, the diagram, its controls, the
+  narration and, only for a caveat, a short footnote. On a phone the card comes
+  before the editor.
 - Memory is always drawn by `memory-diagram.tsx`: rows Variable, Index, Value,
   Address; whatever holds an Address (a pointer, `&x`, a loop counter) sits in
   a row under the column it points at, with an arrow up. Nothing is drawn
   across columns. Reveal detail on interaction, not up front.
 - Icons come from `lucide-react`, `aria-hidden` beside a word; an icon-only
   control keeps an sr-only name. Stepping always goes through `StepControls`.
-- Code always goes through `CodePanel` (MBG's static editor look and `--code-*`
-  palette); never style a snippet by hand. Mark the parts that are also in the
-  diagram with their role (`CodePart`) so code and picture share colours.
+- Code always goes through `CodePanel` (MBG's editor frame, greyscale syntax);
+  never style a snippet by hand. Colour in code only ever marks a role: mark
+  the parts that are also in the diagram with their role (`CodePart`) so code
+  and picture share colours.
 
 ## Styling: MBG design system
 
