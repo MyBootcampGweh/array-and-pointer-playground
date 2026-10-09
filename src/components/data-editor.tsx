@@ -34,9 +34,9 @@ export function DataEditor({
           className="ml-auto size-5 text-muted-foreground transition-transform group-open:rotate-180"
         />
       </summary>
-      <div className="flex flex-col gap-4 border-t px-4 py-4">
+      <div className="flex flex-col gap-3 border-t px-4 py-3">
         {children}
-        <Button onClick={onRestore} className="self-start">
+        <Button variant="ghost" onClick={onRestore} className="self-start">
           <Undo2 aria-hidden="true" />
           Balikin contoh awal
         </Button>
@@ -239,43 +239,92 @@ export function ArrayValuesField({
   const nextValue = clamp((values.at(-1) ?? 0) + 10, INT_MIN, INT_MAX);
 
   return (
-    <fieldset className="flex min-w-0 flex-col gap-3">
+    <fieldset className="min-w-0">
       <legend className="mb-2 text-sm font-medium wrap-anywhere">
         {legend} <span className="font-mono text-variable-ink">{name}</span>{" "}
         <span className="text-muted-foreground">
           ({values.length} dari maks. {MAX_ARRAY_LENGTH})
         </span>
       </legend>
-      {/* Labels are just the Index: the array name is in the legend once,
-          so a long name never squeezes the fields. */}
-      <div className="grid grid-cols-4 gap-2">
+      {/* One wrapping row of small boxes, like the strip it edits. Labels are
+          just the Index: the array name is in the legend once. */}
+      <div className="flex flex-wrap items-end gap-2">
         {values.map((value, index) => (
-          <IntField
+          <ValueCell
             key={index}
-            label={<span className="text-index-ink">[{index}]</span>}
+            index={index}
             value={value}
             onCommit={(next) =>
               onChange(values.map((old, i) => (i === index ? next : old)))
             }
           />
         ))}
-      </div>
-      <div className="flex flex-wrap gap-2">
-        <Button
-          onClick={() => onChange([...values, nextValue])}
-          disabled={!canAdd}
-        >
-          <Plus aria-hidden="true" />
-          Tambah
-        </Button>
         <Button
           onClick={() => onChange(values.slice(0, -1))}
           disabled={!canRemove}
+          title="Kurangi elemen"
         >
           <Minus aria-hidden="true" />
-          Kurangi
+          <span className="sr-only">Kurangi</span>
+        </Button>
+        <Button
+          onClick={() => onChange([...values, nextValue])}
+          disabled={!canAdd}
+          title="Tambah elemen"
+        >
+          <Plus aria-hidden="true" />
+          <span className="sr-only">Tambah</span>
         </Button>
       </div>
     </fieldset>
+  );
+}
+
+/**
+ * One Value of the row. The fragment puts the box and its error straight into
+ * the row's wrap, so `order-last basis-full` drops the error onto its own line
+ * under the row instead of squeezing it into a 56px box.
+ */
+function ValueCell({
+  index,
+  value,
+  onCommit,
+}: {
+  index: number;
+  value: number;
+  onCommit: (value: number) => void;
+}) {
+  const id = useId();
+  const errorId = `${id}-error`;
+  const draft = useDraft(value, String, parseIntInput, onCommit);
+  return (
+    <>
+      <div className="flex w-14 flex-col gap-1 sm:w-16">
+        <label htmlFor={id} className="font-mono text-sm text-index-ink">
+          [{index}]
+        </label>
+        <input
+          id={id}
+          value={draft.text}
+          inputMode="numeric"
+          autoComplete="off"
+          spellCheck={false}
+          aria-invalid={draft.error ? true : undefined}
+          aria-describedby={draft.error ? errorId : undefined}
+          onChange={(event) => draft.change(event.target.value)}
+          onBlur={draft.blur}
+          className={`${INPUT_CLASS} text-center`}
+        />
+      </div>
+      {draft.error ? (
+        <p
+          id={errorId}
+          role="alert"
+          className="order-last basis-full text-sm text-destructive"
+        >
+          [{index}] {draft.error}
+        </p>
+      ) : null}
+    </>
   );
 }
