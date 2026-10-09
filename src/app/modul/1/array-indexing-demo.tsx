@@ -102,9 +102,8 @@ export function ArrayIndexingDemo() {
       narration={
         read.kind === "ok" ? (
           <Narration>
-            <RoleChip role="index">Index {index}</RoleChip> = kotak ke-
-            {index + 1}, soalnya hitungannya mulai dari 0. Value-nya{" "}
-            <RoleChip role="value">{read.value}</RoleChip>.
+            <RoleChip role="index">Index {index}</RoleChip> itu kotak ke-
+            {index + 1}, soalnya ngitungnya mulai dari 0.
           </Narration>
         ) : (
           <Narration isWarning>
@@ -112,9 +111,8 @@ export function ArrayIndexingDemo() {
               <RoleChip role="variable">{name}</RoleChip>[{index}] di luar
               array!
             </strong>{" "}
-            Index yang ada cuma {validRange}. C nggak bakal ngelarang, tapi
-            hasilnya bisa ngaco atau programnya crash. Namanya{" "}
-            <em>undefined behavior</em>.
+            Index yang ada cuma {validRange}; C nggak ngelarang, tapi hasilnya
+            bisa ngaco atau crash: <em>undefined behavior</em>.
           </Narration>
         )
       }
