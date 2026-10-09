@@ -55,13 +55,10 @@ export function ModuleFrame({ number, analogy, children }: ModuleFrameProps) {
       </nav>
 
       <header className="flex max-w-3xl flex-col gap-3">
-        <p className="text-sm font-semibold tracking-wide text-accent-foreground">
-          Modul {number} dari {MODULES.length}
-        </p>
         <h1 className="text-display-sm text-balance sm:text-display-md">
           {title}
         </h1>
-        <p className="flex gap-3 text-lg leading-relaxed text-muted-foreground">
+        <p className="flex gap-3 text-base leading-relaxed text-muted-foreground sm:text-lg">
           <Lightbulb
             aria-hidden="true"
             className="mt-1 size-5 shrink-0 text-accent-foreground"
