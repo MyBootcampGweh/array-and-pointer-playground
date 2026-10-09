@@ -11,8 +11,8 @@ export type ModuleInfo = {
 export const MODULES: readonly ModuleInfo[] = [
   {
     number: 1,
-    title: "Indeks Array",
-    summary: "Indeks itu posisi, nilai itu isinya.",
+    title: "Index Array",
+    summary: "Index itu posisi, Value itu isinya.",
   },
   {
     number: 2,
@@ -22,32 +22,32 @@ export const MODULES: readonly ModuleInfo[] = [
   {
     number: 3,
     title: "Looping Output Array",
-    summary: "for-loop baca isi array, terus nampilin satu per satu.",
+    summary: "for-loop baca Value array, terus nampilin satu per satu.",
   },
   {
     number: 4,
-    title: "Array di Memori",
-    summary: "Elemen array berjejer di memori, tiap int makan 4 byte.",
+    title: "Array di Memory",
+    summary: "Elemen array berjejer di Memory, tiap int makan 4 byte.",
   },
   {
     number: 5,
     title: "Ampersand (&) di scanf",
-    summary: "scanf butuh alamat variabel, makanya pakai &.",
+    summary: "scanf butuh Address Variable, makanya pakai &.",
   },
   {
     number: 6,
-    title: "Pointer ke Satu Variabel",
-    summary: "Pointer nyimpen alamat, bukan nilai.",
+    title: "Pointer ke Satu Variable",
+    summary: "Pointer nyimpen Address, bukan Value.",
   },
   {
     number: 7,
-    title: "Dereferensi & Ubah Nilai",
-    summary: "Pakai *ptr buat baca dan ganti nilai lewat alamatnya.",
+    title: "Dereferensi & Ubah Value",
+    summary: "Pakai *ptr buat baca dan ganti Value lewat Address-nya.",
   },
   {
     number: 8,
     title: "Ganti Target Pointer",
-    summary: "Pindahin pointer ke variabel lain, nilainya nggak berubah.",
+    summary: "Pindahin Pointer ke Variable lain, Value-nya nggak berubah.",
   },
   {
     number: 9,
@@ -65,7 +65,5 @@ export function getModule(number: ModuleNumber): ModuleInfo {
 }
 
 export function moduleHref(number: ModuleNumber): Route {
-  // Module pages land one at a time, so not every route exists yet for the
-  // typed-routes check; the build output and the browser check confirm them.
-  return `/modul/${number}` as Route;
+  return `/modul/${number}`;
 }
