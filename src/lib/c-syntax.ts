@@ -1,12 +1,4 @@
-export type CodeTokenKind =
-  | "comment"
-  | "string"
-  | "number"
-  | "type"
-  | "keyword"
-  | "function"
-  | "definition"
-  | "plain";
+export type CodeTokenKind = "comment" | "string" | "keyword" | "plain";
 
 export type CodeToken = { kind: CodeTokenKind; text: string };
 
@@ -45,9 +37,10 @@ export function arrayDeclaration(
   return parts;
 }
 
-// Enough C to read like MBG's editor does for these snippets, not a parser.
-const TYPES = "int|char|float|double|void|long|short|unsigned|signed|const";
-const KEYWORDS = "for|while|do|if|else|return|sizeof|break|continue";
+// Enough C for these snippets, not a parser. Types count as keywords: both
+// only get weight, because colour in the editor is kept for the roles.
+const KEYWORDS =
+  "int|char|float|double|void|long|short|unsigned|signed|const|for|while|do|if|else|return|sizeof|break|continue";
 
 // One alternation scanned left to right: at each position the first group
 // that matches wins, so a keyword inside a string stays part of the string.
@@ -55,16 +48,12 @@ const TOKEN = new RegExp(
   [
     String.raw`(?<comment>\/\/.*|\/\*.*?\*\/)`,
     String.raw`(?<string>"(?:[^"\\]|\\.)*")`,
-    String.raw`(?<number>\b\d+\b)`,
-    String.raw`(?<type>\b(?:${TYPES})\b)`,
     String.raw`(?<keyword>\b(?:${KEYWORDS})\b)`,
-    String.raw`(?<function>\b[A-Za-z_]\w*(?=\s*\())`,
-    String.raw`(?<definition>(?<=\b(?:${TYPES})\s+\**\s*)[A-Za-z_]\w*)`,
   ].join("|"),
   "g",
 );
 
-/** Splits one line of C into coloured tokens; joining their text gives the line back. */
+/** Splits one line of C into tokens; joining their text gives the line back. */
 export function tokenise(line: string): CodeToken[] {
   const tokens: CodeToken[] = [];
   let cursor = 0;
@@ -106,15 +95,7 @@ export function sliceTokens(
   return slice;
 }
 
-const TOKEN_KINDS: readonly string[] = [
-  "comment",
-  "string",
-  "number",
-  "type",
-  "keyword",
-  "function",
-  "definition",
-];
+const TOKEN_KINDS: readonly string[] = ["comment", "string", "keyword"];
 
 function isTokenKind(name: string | undefined): name is CodeTokenKind {
   return name !== undefined && TOKEN_KINDS.includes(name);

@@ -12,25 +12,13 @@ import {
   tokenise,
 } from "@/lib/c-syntax";
 
-// MBG's editor mapping: keywords also get weight, so the shape of the program
-// reads without relying on colour.
+// Greyscale on purpose: here a colour always means a role from the diagram,
+// so syntax only gets weight, which still shows the program's shape.
 const TOKEN_CLASS: Record<CodeTokenKind, string> = {
-  comment: "text-code-comment italic",
-  string: "text-code-string",
-  number: "text-code-literal",
-  type: "text-code-type",
-  keyword: "font-medium text-code-keyword",
-  function: "text-code-special",
-  definition: "text-code-definition",
+  comment: "text-muted-foreground italic",
+  string: "",
+  keyword: "font-medium",
   plain: "",
-};
-
-const ROLE_UNDERLINE: Record<CodeRole, string> = {
-  variable: "decoration-variable",
-  index: "decoration-index",
-  value: "decoration-memory",
-  address: "decoration-address",
-  pointer: "decoration-pointer",
 };
 
 type CodePanelProps = {
@@ -41,7 +29,7 @@ type CodePanelProps = {
   activePart?: string | null;
 };
 
-/** A static editor window in MBG's style: title bar, gutter, syntax colours. */
+/** A static editor window in MBG's style: title bar, gutter, active line. */
 export function CodePanel({
   lines,
   activeLine = null,
@@ -51,9 +39,12 @@ export function CodePanel({
     <section className="min-w-0 overflow-hidden rounded-2xl bg-card shadow-subtle ring-1 ring-foreground/10">
       <div className="flex items-center gap-3 border-b bg-muted px-4 py-2.5">
         <span aria-hidden="true" className="flex gap-1.5">
-          <span className="size-2.5 rounded-full bg-red-400/70" />
-          <span className="size-2.5 rounded-full bg-amber-400/70" />
-          <span className="size-2.5 rounded-full bg-emerald-400/70" />
+          {[0, 1, 2].map((dot) => (
+            <span
+              key={dot}
+              className="size-2.5 rounded-full bg-foreground/15"
+            />
+          ))}
         </span>
         <h2 className="font-mono text-sm text-muted-foreground">
           <span className="sr-only">Kode C, </span>main.c
@@ -138,10 +129,7 @@ function renderLine(line: CodeLine, ringed: string | null): ReactNode {
     const role = roles.find((r) => r.from <= from && from < r.to)?.role;
     const slice = text.slice(from, to);
     const node = role ? (
-      <span
-        key={from}
-        className={`font-semibold underline decoration-2 underline-offset-4 ${ROLE_TEXT[role]} ${ROLE_UNDERLINE[role]}`}
-      >
+      <span key={from} className={`font-semibold ${ROLE_TEXT[role]}`}>
         {slice}
       </span>
     ) : (
@@ -168,13 +156,14 @@ function renderLine(line: CodeLine, ringed: string | null): ReactNode {
 }
 
 function renderTokens(tokens: readonly CodeToken[]) {
-  return tokens.map((token, index) =>
-    token.kind === "plain" ? (
-      token.text
-    ) : (
-      <span key={index} className={TOKEN_CLASS[token.kind]}>
+  return tokens.map((token, index) => {
+    const className = TOKEN_CLASS[token.kind];
+    return className ? (
+      <span key={index} className={className}>
         {token.text}
       </span>
-    ),
-  );
+    ) : (
+      token.text
+    );
+  });
 }

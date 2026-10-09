@@ -8,27 +8,22 @@ const kinds = (line: string) =>
     .filter((token) => token.kind !== "plain")
     .map((token) => `${token.kind}:${token.text}`);
 
-test("tokenise colours a for header like MBG's editor", () => {
+test("tokenise marks types and keywords, nothing else in plain code", () => {
   assert.deepEqual(kinds("for (int i = 0; i < ukuran_array; i++) {"), [
     "keyword:for",
-    "type:int",
-    "definition:i",
-    "number:0",
+    "keyword:int",
   ]);
+  assert.deepEqual(kinds("int *ptr = &angka;"), ["keyword:int"]);
 });
 
-test("tokenise handles declarations, calls and strings", () => {
-  assert.deepEqual(kinds("int *ptr = &angka;"), ["type:int", "definition:ptr"]);
+test("tokenise keeps keywords inside strings, comments and longer names", () => {
   assert.deepEqual(kinds('printf("%d for int", nilai[2]); // 30'), [
-    "function:printf",
     'string:"%d for int"',
-    "number:2",
     "comment:// 30",
   ]);
-  assert.deepEqual(kinds("int nilai2[5];"), [
-    "type:int",
-    "definition:nilai2",
-    "number:5",
+  assert.deepEqual(kinds("int interval = sizeof(x);"), [
+    "keyword:int",
+    "keyword:sizeof",
   ]);
 });
 
@@ -59,11 +54,10 @@ test("sliceTokens cuts tokens at the slice edges", () => {
   const start = line.indexOf("int i = 0");
   const part = sliceTokens(tokenise(line), start, start + "int i".length);
   assert.deepEqual(part, [
-    { kind: "type", text: "int" },
-    { kind: "plain", text: " " },
-    { kind: "definition", text: "i" },
+    { kind: "keyword", text: "int" },
+    { kind: "plain", text: " i" },
   ]);
   assert.deepEqual(sliceTokens(tokenise("int x;"), 1, 2), [
-    { kind: "type", text: "n" },
+    { kind: "keyword", text: "n" },
   ]);
 });

@@ -98,15 +98,6 @@
   --color-pointer: var(--pointer);
   --color-pointer-ink: var(--pointer-ink);
 
-  /* MBG's editor palette, so code reads like it does in MBG's editor. */
-  --color-code-keyword: var(--code-keyword);
-  --color-code-type: var(--code-type);
-  --color-code-literal: var(--code-literal);
-  --color-code-string: var(--code-string);
-  --color-code-definition: var(--code-definition);
-  --color-code-special: var(--code-special);
-  --color-code-comment: var(--code-comment);
-
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -155,15 +146,6 @@
   --address-ink: #945518;
   --pointer: #d9a800;
   --pointer-ink: #7f6200;
-
-  --code-keyword: #770088;
-  /* MBG's #008855 measures 3.85:1 on the active-line tint; same hue, darker. */
-  --code-type: #007a4c;
-  --code-literal: #116644;
-  --code-string: #aa1111;
-  --code-definition: #0000ff;
-  --code-special: #225566;
-  --code-comment: #994400;
 }
 
 :root[data-theme="dark"] {
@@ -195,14 +177,6 @@
   --memory-ink: #42b575;
   --address-ink: var(--address);
   --pointer-ink: var(--pointer);
-
-  --code-keyword: #d2a8ff;
-  --code-type: #56d4a0;
-  --code-literal: #7ee787;
-  --code-string: #ff9492;
-  --code-definition: #79c0ff;
-  --code-special: #9ad1e8;
-  --code-comment: #b3a284;
 }
 
 @layer base {
