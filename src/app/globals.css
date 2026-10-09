@@ -1,0 +1,138 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens copied from the MBG web app (my-bootcamp-gweh,
+ * web/src/app/globals.css), light theme only. Change a value there first and
+ * copy it here, so the two products keep one visual identity.
+ */
+@theme {
+  --color-brand-50: oklch(0.962 0.018 272.314);
+  --color-brand-100: oklch(0.93 0.034 272.788);
+  --color-brand-200: oklch(0.87 0.065 274.039);
+  --color-brand-300: oklch(0.785 0.115 274.713);
+  --color-brand-400: oklch(0.673 0.182 276.935);
+  --color-brand-500: oklch(0.585 0.233 277.117);
+  --color-brand-600: oklch(0.511 0.262 276.966);
+  --color-brand-700: oklch(0.457 0.24 277.023);
+  --color-brand-800: oklch(0.398 0.195 277.366);
+  --color-brand-900: oklch(0.359 0.144 278.697);
+  --color-brand-950: oklch(0.257 0.09 281.288);
+
+  --color-background: oklch(1 0 0);
+  --color-foreground: oklch(0.141 0.005 285.823);
+  --color-surface: oklch(0.985 0.001 286.375);
+  --color-surface-muted: oklch(0.967 0.001 286.375);
+  --color-card: oklch(1 0 0);
+  --color-primary: var(--color-brand-600);
+  --color-primary-foreground: oklch(1 0 0);
+  --color-secondary: oklch(0.967 0.001 286.375);
+  --color-secondary-foreground: oklch(0.21 0.006 285.885);
+  --color-muted: oklch(0.967 0.001 286.375);
+  --color-muted-foreground: oklch(0.492 0.016 285.938);
+  --color-accent: var(--color-brand-50);
+  --color-accent-foreground: var(--color-brand-700);
+  --color-destructive: oklch(0.577 0.245 27.325);
+  --color-success: oklch(0.5 0.145 163.225);
+  --color-success-muted: oklch(0.962 0.044 156.743);
+  --color-warning: oklch(0.56 0.179 58.318);
+  --color-warning-muted: oklch(0.973 0.071 103.193);
+  --color-border: oklch(0.92 0.004 286.32);
+  --color-input: oklch(0.92 0.004 286.32);
+  --color-ring: var(--color-brand-500);
+
+  /*
+   * Teaching roles. MBG has no tokens for these, so each one borrows an MBG
+   * value: index and pointer reuse the editor's `--code-class` and
+   * `--code-keyword` colours, which are already contrast-checked against white.
+   * Every use pairs the colour with its word, never colour alone.
+   */
+  --color-index: #116677;
+  --color-value: var(--color-success);
+  --color-address: var(--color-warning);
+  --color-pointer: #770088;
+  --color-active: var(--color-primary);
+
+  --font-sans:
+    var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: var(--font-geist-mono), ui-monospace, monospace;
+
+  --text-display-sm: 2rem;
+  --text-display-sm--line-height: 1.15;
+  --text-display-sm--letter-spacing: -0.02em;
+  --text-display-md: 2.5rem;
+  --text-display-md--line-height: 1.1;
+  --text-display-md--letter-spacing: -0.025em;
+  --text-display-lg: 3.25rem;
+  --text-display-lg--line-height: 1.05;
+  --text-display-lg--letter-spacing: -0.03em;
+
+  --ease-entrance: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-interaction: cubic-bezier(0.4, 0, 0.2, 1);
+
+  --shadow-subtle:
+    0 1px 2px 0 oklch(0.141 0.005 285.823 / 0.04),
+    0 1px 3px 0 oklch(0.141 0.005 285.823 / 0.06);
+  --shadow-elevated:
+    0 2px 4px -1px oklch(0.141 0.005 285.823 / 0.05),
+    0 8px 16px -4px oklch(0.141 0.005 285.823 / 0.08);
+
+  --container-content: 72rem;
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-4xl: calc(var(--radius) * 2.6);
+}
+
+:root {
+  --radius: 0.625rem;
+  color-scheme: light;
+}
+
+@layer base {
+  *,
+  ::after,
+  ::before {
+    @apply border-border;
+  }
+
+  html {
+    @apply font-sans antialiased;
+    scroll-behavior: smooth;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+    text-rendering: optimizeLegibility;
+  }
+
+  /* The one focus treatment for every control; keyboard users rely on it. */
+  :focus-visible {
+    @apply outline-2 outline-offset-2 outline-ring;
+  }
+
+  ::selection {
+    @apply bg-brand-600/20;
+  }
+
+  /* Global, so an animation added later cannot forget to respect the setting. */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+
+    *,
+    ::before,
+    ::after {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+      scroll-behavior: auto !important;
+    }
+  }
+}
