@@ -182,7 +182,7 @@ export function ArrayView({
               {columns.map((column) => (
                 <td
                   key={columnKey(column)}
-                  className="text-center font-mono text-xs text-address sm:text-sm"
+                  className={`text-center font-mono text-xs text-address sm:text-sm ${column.kind === "element" && column.index === activeIndex ? "font-bold" : ""}`}
                 >
                   {column.kind === "element" ? addressOf(column.index) : null}
                 </td>
