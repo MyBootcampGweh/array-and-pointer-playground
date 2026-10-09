@@ -1,8 +1,9 @@
+import { ArrowLeft, ArrowRight, MessageCircleQuestionMark } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { type ReactNode } from "react";
 
-import { Callout, Legend, buttonClass } from "@/components/ui";
+import { Callout, Legend, type Role, buttonClass } from "@/components/ui";
 import {
   MODULES,
   type ModuleNumber,
@@ -17,10 +18,12 @@ export function moduleMetadata(number: ModuleNumber): Metadata {
 
 type ModuleFrameProps = {
   number: ModuleNumber;
-  /** Opening question that frames the module. */
+  /** One-line hook that opens the module. */
   question: string;
+  /** One or two short sentences; the diagram does the rest. */
   analogy: ReactNode;
-  quiz: { question: string; answer: ReactNode };
+  /** Colour roles the diagram uses, so the legend shows only those. */
+  roles: readonly Role[];
   /** The interactive simulation. */
   children: ReactNode;
 };
@@ -29,7 +32,7 @@ export function ModuleFrame({
   number,
   question,
   analogy,
-  quiz,
+  roles,
   children,
 }: ModuleFrameProps) {
   const { title } = getModule(number);
@@ -37,7 +40,7 @@ export function ModuleFrame({
   const next = MODULES.find((entry) => entry.number === number + 1);
 
   return (
-    <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 py-6 sm:px-6 lg:gap-8 lg:py-10">
+    <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8">
       <nav aria-label="Daftar modul">
         <ol className="flex flex-wrap gap-1.5">
           {MODULES.map((entry) => {
@@ -61,33 +64,28 @@ export function ModuleFrame({
         </ol>
       </nav>
 
-      <header className="flex flex-col gap-3">
-        <p className="text-sm font-semibold tracking-wide text-accent-foreground">
-          Modul {number} dari {MODULES.length}
-        </p>
-        <h1 className="text-display-sm text-balance sm:text-display-md">
-          {title}
-        </h1>
-        <p className="max-w-3xl text-base leading-relaxed text-muted-foreground sm:text-lg">
-          <span className="font-semibold text-foreground">
-            Pertanyaan pemantik:
-          </span>{" "}
-          {question}
-        </p>
-        <Legend />
-      </header>
+      <div className="grid gap-4 lg:grid-cols-2 lg:items-end lg:gap-8">
+        <header className="flex flex-col gap-2">
+          <p className="text-sm font-semibold tracking-wide text-accent-foreground">
+            Modul {number} dari {MODULES.length}
+          </p>
+          <h1 className="text-display-sm text-balance sm:text-display-md">
+            {title}
+          </h1>
+          <p className="flex gap-2 text-lg text-muted-foreground">
+            <MessageCircleQuestionMark
+              aria-hidden="true"
+              className="mt-1 size-5 shrink-0 text-accent-foreground"
+            />
+            {question}
+          </p>
+        </header>
+        <Callout title="Bayangin aja">{analogy}</Callout>
+      </div>
+
+      <Legend roles={roles} />
 
       {children}
-
-      <div className="grid gap-4 lg:grid-cols-2">
-        <Callout title="Analogi">{analogy}</Callout>
-        <details className="rounded-xl bg-card p-4 shadow-subtle ring-1 ring-foreground/10">
-          <summary className="cursor-pointer font-semibold">
-            Cek pemahaman: {quiz.question}
-          </summary>
-          <div className="mt-3 text-base leading-relaxed">{quiz.answer}</div>
-        </details>
-      </div>
 
       <nav
         aria-label="Modul sebelum dan sesudah"
@@ -95,11 +93,13 @@ export function ModuleFrame({
       >
         {previous ? (
           <Link href={moduleHref(previous.number)} className={buttonClass()}>
-            ← Modul {previous.number}: {previous.title}
+            <ArrowLeft aria-hidden="true" />
+            Modul {previous.number}: {previous.title}
           </Link>
         ) : (
           <Link href="/" className={buttonClass()}>
-            ← Daftar modul
+            <ArrowLeft aria-hidden="true" />
+            Semua modul
           </Link>
         )}
         {next ? (
@@ -107,11 +107,13 @@ export function ModuleFrame({
             href={moduleHref(next.number)}
             className={`${buttonClass("primary")} whitespace-normal`}
           >
-            Berikutnya: Modul {next.number} · {next.title} →
+            Lanjut ke Modul {next.number}: {next.title}
+            <ArrowRight aria-hidden="true" />
           </Link>
         ) : (
           <Link href="/" className={buttonClass("primary")}>
-            Selesai! Kembali ke beranda →
+            Beres! Balik ke awal
+            <ArrowRight aria-hidden="true" />
           </Link>
         )}
       </nav>

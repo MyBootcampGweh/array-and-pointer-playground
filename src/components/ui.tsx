@@ -1,15 +1,20 @@
+import { Lightbulb, TriangleAlert } from "lucide-react";
 import { type ComponentProps, type ReactNode } from "react";
 
-type ButtonVariant = "primary" | "outline";
+type ButtonVariant = "primary" | "outline" | "ghost";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
   primary: "bg-primary text-primary-foreground hover:bg-primary/85",
   outline: "border border-border bg-background hover:bg-muted",
+  ghost: "text-muted-foreground hover:bg-muted hover:text-foreground",
 };
 
-/** MBG's `xl` button size: the prominent control height, at least 44px. */
+/**
+ * MBG's `xl` button size: the prominent control height, at least 44px. Icons
+ * inside get one size here, so call sites only pick the glyph.
+ */
 export function buttonClass(variant: ButtonVariant = "outline"): string {
-  return `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-base font-medium transition-colors duration-200 ease-interaction select-none active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 ${BUTTON_VARIANTS[variant]}`;
+  return `inline-flex min-h-11 items-center justify-center gap-2 rounded-xl px-4 text-base font-medium transition-colors duration-200 ease-interaction select-none active:translate-y-px disabled:pointer-events-none disabled:opacity-50 aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&_svg]:size-5 [&_svg]:shrink-0 ${BUTTON_VARIANTS[variant]}`;
 }
 
 type ButtonProps = ComponentProps<"button"> & { variant?: ButtonVariant };
@@ -71,74 +76,91 @@ export function RoleChip({
 }) {
   return (
     <span
-      className={`inline-flex items-center rounded-4xl border bg-card px-2.5 py-0.5 font-mono text-sm font-medium ${ROLE_CHIP[role]}`}
+      className={`inline-flex items-center gap-1 rounded-4xl border bg-card px-2.5 py-0.5 font-mono text-sm font-medium ${ROLE_CHIP[role]}`}
     >
       {children}
     </span>
   );
 }
 
-const LEGEND: readonly { role: Role; label: string }[] = [
+const LEGEND: readonly { role: Role; label: ReactNode }[] = [
   { role: "index", label: "indeks = posisi" },
   { role: "value", label: "nilai = isi" },
   { role: "address", label: "alamat (ilustrasi)" },
   { role: "pointer", label: "pointer" },
   { role: "active", label: "aktif" },
-  { role: "danger", label: "⚠ di luar batas" },
+  {
+    role: "danger",
+    label: (
+      <>
+        <TriangleAlert aria-hidden="true" className="size-3.5" />
+        di luar batas
+      </>
+    ),
+  },
 ];
 
-export function Legend() {
+/** Only the roles a page actually draws, so the key never lists noise. */
+export function Legend({ roles }: { roles?: readonly Role[] }) {
   return (
     <ul aria-label="Arti warna" className="flex flex-wrap gap-2">
-      {LEGEND.map(({ role, label }) => (
-        <li key={role}>
-          <RoleChip role={role}>{label}</RoleChip>
-        </li>
-      ))}
+      {LEGEND.filter(({ role }) => !roles || roles.includes(role)).map(
+        ({ role, label }) => (
+          <li key={role}>
+            <RoleChip role={role}>{label}</RoleChip>
+          </li>
+        ),
+      )}
     </ul>
   );
 }
 
-const CALLOUT_TONES = {
-  info: { box: "border-primary/20 bg-accent", title: "text-accent-foreground" },
-  danger: {
-    box: "border-destructive/30 bg-destructive/5",
-    title: "text-destructive",
-  },
-} as const;
-
+/** A short aside, such as the analogy that opens each module. */
 export function Callout({
-  tone = "info",
   title,
   children,
-  isAlert = false,
 }: {
-  tone?: keyof typeof CALLOUT_TONES;
   title: string;
   children: ReactNode;
-  /** Announce immediately; for warnings caused by what the student just did. */
-  isAlert?: boolean;
 }) {
-  const styles = CALLOUT_TONES[tone];
   return (
-    <div
-      role={isAlert ? "alert" : undefined}
-      className={`rounded-xl border p-4 text-base leading-relaxed ${styles.box}`}
-    >
-      <p className={`mb-1 font-semibold ${styles.title}`}>{title}</p>
-      <div>{children}</div>
+    <div className="flex gap-3 rounded-xl border border-primary/20 bg-accent p-4 text-base leading-relaxed">
+      <Lightbulb
+        aria-hidden="true"
+        className="mt-0.5 size-5 shrink-0 text-accent-foreground"
+      />
+      <div>
+        <p className="font-semibold text-accent-foreground">{title}</p>
+        <div>{children}</div>
+      </div>
     </div>
   );
 }
 
-/** Live region for the step-by-step explanation. */
-export function Narration({ children }: { children: ReactNode }) {
+/**
+ * Live region for the step-by-step explanation. It stays mounted and only its
+ * content and tone change, which is what screen readers need to announce it.
+ */
+export function Narration({
+  children,
+  isWarning = false,
+}: {
+  children: ReactNode;
+  /** Something unsafe just happened, such as an out-of-bounds read. */
+  isWarning?: boolean;
+}) {
   return (
     <p
       aria-live="polite"
-      className="rounded-xl bg-surface-muted p-4 text-base leading-relaxed sm:text-lg"
+      className={`flex gap-3 rounded-xl p-4 text-base leading-relaxed sm:text-lg ${isWarning ? "bg-destructive/5 ring-1 ring-destructive/30" : "bg-surface-muted"}`}
     >
-      {children}
+      {isWarning ? (
+        <TriangleAlert
+          aria-hidden="true"
+          className="mt-1 size-5 shrink-0 text-destructive"
+        />
+      ) : null}
+      <span>{children}</span>
     </p>
   );
 }

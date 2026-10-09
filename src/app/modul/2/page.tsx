@@ -10,28 +10,15 @@ export default function LoopInputPage() {
   return (
     <ModuleFrame
       number={2}
-      question="Kalau array punya 5 kotak, berapa kali scanf dipanggil, dan dari mana for-loop tahu kapan harus berhenti?"
+      question="Array-nya 5 kotak. scanf bakal jalan berapa kali, dan kapan loop-nya berhenti?"
       analogy={
         <>
-          Bayangkan petugas yang mengisi loker satu per satu. Ia mulai dari
-          loker 0, mengisinya, lalu pindah ke loker berikutnya. Begitu nomor
-          loker sama dengan jumlah loker, ia berhenti, karena loker dengan nomor
-          itu memang tidak ada.
+          Kayak petugas yang ngisi loker satu per satu dari nomor 0. Begitu
+          nomornya sama dengan jumlah loker, dia berhenti, soalnya loker itu
+          emang nggak ada.
         </>
       }
-      quiz={{
-        question:
-          "Apa yang terjadi kalau kondisinya ditulis i <= ukuran_array?",
-        answer: (
-          <>
-            Loop jalan satu kali lagi saat i = 5, dan scanf menulis ke{" "}
-            <code className="font-mono">nilai[5]</code>, yang ada di luar batas
-            array. Itu <em>undefined behavior</em>: bisa menimpa data lain atau
-            membuat program crash. Karena itu kondisinya{" "}
-            <code className="font-mono">i &lt; ukuran_array</code>.
-          </>
-        ),
-      }}
+      roles={["index", "value", "active"]}
     >
       <LoopInputDemo />
     </ModuleFrame>

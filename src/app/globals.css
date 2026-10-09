@@ -1,8 +1,15 @@
 @import "tailwindcss";
 
 /*
+ * The inline script in `layout.tsx` sets `data-theme` on <html> before the
+ * first paint. Components rarely need `dark:` because the tokens below switch
+ * on their own; it is for swaps such as the theme icon.
+ */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
+/*
  * Design tokens copied from the MBG web app (my-bootcamp-gweh,
- * web/src/app/globals.css), light theme only. Change a value there first and
+ * web/src/app/globals.css), light and dark. Change a value there first and
  * copy it here, so the two products keep one visual identity.
  */
 @theme {
@@ -17,40 +24,6 @@
   --color-brand-800: oklch(0.398 0.195 277.366);
   --color-brand-900: oklch(0.359 0.144 278.697);
   --color-brand-950: oklch(0.257 0.09 281.288);
-
-  --color-background: oklch(1 0 0);
-  --color-foreground: oklch(0.141 0.005 285.823);
-  --color-surface: oklch(0.985 0.001 286.375);
-  --color-surface-muted: oklch(0.967 0.001 286.375);
-  --color-card: oklch(1 0 0);
-  --color-primary: var(--color-brand-600);
-  --color-primary-foreground: oklch(1 0 0);
-  --color-secondary: oklch(0.967 0.001 286.375);
-  --color-secondary-foreground: oklch(0.21 0.006 285.885);
-  --color-muted: oklch(0.967 0.001 286.375);
-  --color-muted-foreground: oklch(0.492 0.016 285.938);
-  --color-accent: var(--color-brand-50);
-  --color-accent-foreground: var(--color-brand-700);
-  --color-destructive: oklch(0.577 0.245 27.325);
-  --color-success: oklch(0.5 0.145 163.225);
-  --color-success-muted: oklch(0.962 0.044 156.743);
-  --color-warning: oklch(0.56 0.179 58.318);
-  --color-warning-muted: oklch(0.973 0.071 103.193);
-  --color-border: oklch(0.92 0.004 286.32);
-  --color-input: oklch(0.92 0.004 286.32);
-  --color-ring: var(--color-brand-500);
-
-  /*
-   * Teaching roles. MBG has no tokens for these, so each one borrows an MBG
-   * value: index and pointer reuse the editor's `--code-class` and
-   * `--code-keyword` colours, which are already contrast-checked against white.
-   * Every use pairs the colour with its word, never colour alone.
-   */
-  --color-index: #116677;
-  --color-value: var(--color-success);
-  --color-address: var(--color-warning);
-  --color-pointer: #770088;
-  --color-active: var(--color-primary);
 
   --font-sans:
     var(--font-geist-sans), ui-sans-serif, system-ui, -apple-system, sans-serif;
@@ -69,6 +42,11 @@
   --ease-entrance: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-interaction: cubic-bezier(0.4, 0, 0.2, 1);
 
+  /*
+   * Light-tuned and not overridden for dark: Tailwind inlines shadow values
+   * into the utilities, so a runtime override would never reach them. Cards
+   * keep their edge in dark mode through `ring-foreground/10` instead.
+   */
   --shadow-subtle:
     0 1px 2px 0 oklch(0.141 0.005 285.823 / 0.04),
     0 1px 3px 0 oklch(0.141 0.005 285.823 / 0.06);
@@ -79,7 +57,51 @@
   --container-content: 72rem;
 }
 
+/* `inline`, so every utility reads the live variable and follows the theme. */
 @theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-muted: var(--surface-muted);
+  --color-card: var(--card);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-success-muted: var(--success-muted);
+  --color-warning: var(--warning);
+  --color-warning-muted: var(--warning-muted);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+
+  /*
+   * Teaching roles. MBG has no tokens for these, so each one borrows an MBG
+   * value that is already contrast-checked in both themes: index and pointer
+   * reuse the editor's class and keyword colours. Every use pairs the colour
+   * with its word, never colour alone.
+   */
+  --color-index: var(--index);
+  --color-value: var(--success);
+  --color-address: var(--warning);
+  --color-pointer: var(--pointer);
+  --color-active: var(--active);
+
+  /* MBG's editor palette, so code reads like it does in MBG's editor. */
+  --color-code-keyword: var(--code-keyword);
+  --color-code-type: var(--code-type);
+  --color-code-literal: var(--code-literal);
+  --color-code-string: var(--code-string);
+  --color-code-definition: var(--code-definition);
+  --color-code-special: var(--code-special);
+  --color-code-comment: var(--code-comment);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -91,6 +113,78 @@
 :root {
   --radius: 0.625rem;
   color-scheme: light;
+
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.141 0.005 285.823);
+  --surface: oklch(0.985 0.001 286.375);
+  --surface-muted: oklch(0.967 0.001 286.375);
+  --card: oklch(1 0 0);
+  --primary: var(--color-brand-600);
+  --primary-foreground: oklch(1 0 0);
+  --secondary: oklch(0.967 0.001 286.375);
+  --secondary-foreground: oklch(0.21 0.006 285.885);
+  --muted: oklch(0.967 0.001 286.375);
+  --muted-foreground: oklch(0.492 0.016 285.938);
+  --accent: var(--color-brand-50);
+  --accent-foreground: var(--color-brand-700);
+  --destructive: oklch(0.577 0.245 27.325);
+  --success: oklch(0.5 0.145 163.225);
+  --success-muted: oklch(0.962 0.044 156.743);
+  --warning: oklch(0.56 0.179 58.318);
+  --warning-muted: oklch(0.973 0.071 103.193);
+  --border: oklch(0.92 0.004 286.32);
+  --input: oklch(0.92 0.004 286.32);
+  --ring: var(--color-brand-500);
+
+  --index: #116677;
+  --pointer: #770088;
+  --active: var(--color-brand-600);
+
+  --code-keyword: #770088;
+  /* MBG's #008855 measures 3.85:1 on the active-line tint; same hue, darker. */
+  --code-type: #007a4c;
+  --code-literal: #116644;
+  --code-string: #aa1111;
+  --code-definition: #0000ff;
+  --code-special: #225566;
+  --code-comment: #994400;
+}
+
+:root[data-theme="dark"] {
+  color-scheme: dark;
+
+  --background: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.985 0 0);
+  --surface: oklch(0.19 0.006 285.885);
+  --surface-muted: oklch(0.21 0.006 285.885);
+  --card: oklch(0.21 0.006 285.885);
+  --secondary: oklch(0.274 0.006 286.033);
+  --secondary-foreground: oklch(0.985 0 0);
+  --muted: oklch(0.274 0.006 286.033);
+  --muted-foreground: oklch(0.705 0.015 286.067);
+  --accent: oklch(0.274 0.006 286.033);
+  --accent-foreground: var(--color-brand-300);
+  --destructive: oklch(0.704 0.191 22.216);
+  --success: oklch(0.696 0.17 162.48);
+  --success-muted: oklch(0.297 0.062 165.194);
+  --warning: oklch(0.769 0.188 70.08);
+  --warning-muted: oklch(0.303 0.078 66.29);
+  --border: oklch(1 0 0 / 10%);
+  --input: oklch(1 0 0 / 15%);
+  --ring: var(--color-brand-400);
+
+  --index: #6fd3c4;
+  --pointer: #d2a8ff;
+  /* brand-600 is only 3:1 as text on the dark card; MBG's dark ring colour. */
+  --active: var(--color-brand-400);
+
+  --code-keyword: #d2a8ff;
+  --code-type: #56d4a0;
+  --code-literal: #7ee787;
+  --code-string: #ff9492;
+  --code-definition: #79c0ff;
+  --code-special: #9ad1e8;
+  --code-comment: #b3a284;
 }
 
 @layer base {
@@ -109,6 +203,12 @@
   body {
     @apply bg-background text-foreground;
     text-rendering: optimizeLegibility;
+  }
+
+  /* Inline code in sentences; code blocks style their own lines. */
+  :not(pre) > code {
+    @apply rounded-md bg-foreground/8 px-1.5 py-0.5 font-mono;
+    font-size: 0.9em;
   }
 
   /* The one focus treatment for every control; keyboard users rely on it. */

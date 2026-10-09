@@ -1,5 +1,6 @@
 "use client";
 
+import { ChevronDown, Minus, Pencil, Plus, Undo2 } from "lucide-react";
 import { type ReactNode, useId, useState } from "react";
 
 import { Button } from "@/components/ui";
@@ -21,17 +22,20 @@ export function DataEditor({
   onRestore: () => void;
 }) {
   return (
-    <details className="rounded-2xl bg-card shadow-subtle ring-1 ring-foreground/10">
-      <summary className="cursor-pointer rounded-2xl px-4 py-3 font-medium select-none">
-        ✎ Ubah nama &amp; nilai{" "}
-        <span className="text-sm font-normal text-muted-foreground">
-          (kodenya ikut berubah)
-        </span>
+    <details className="group rounded-2xl bg-card shadow-subtle ring-1 ring-foreground/10">
+      <summary className="flex min-h-11 cursor-pointer list-none items-center gap-2 rounded-2xl px-4 py-3 font-medium select-none">
+        <Pencil aria-hidden="true" className="size-4 text-accent-foreground" />
+        Ganti nama &amp; nilai
+        <ChevronDown
+          aria-hidden="true"
+          className="ml-auto size-5 text-muted-foreground transition-transform group-open:rotate-180"
+        />
       </summary>
       <div className="flex flex-col gap-4 border-t px-4 py-4">
         {children}
         <Button onClick={onRestore} className="self-start">
-          Kembalikan contoh awal
+          <Undo2 aria-hidden="true" />
+          Balikin contoh awal
         </Button>
       </div>
     </details>
@@ -164,7 +168,10 @@ export function ArrayValuesField({
   return (
     <fieldset className="flex min-w-0 flex-col gap-3">
       <legend className="mb-2 text-sm font-medium">
-        {legend} ({values.length} elemen)
+        {legend}{" "}
+        <span className="text-muted-foreground">
+          ({values.length} dari maks. {MAX_ARRAY_LENGTH})
+        </span>
       </legend>
       <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
         {values.map((value, index) => (
@@ -183,19 +190,17 @@ export function ArrayValuesField({
           onClick={() => onChange([...values, nextValue])}
           disabled={!canAdd}
         >
-          + Tambah elemen
+          <Plus aria-hidden="true" />
+          Tambah
         </Button>
         <Button
           onClick={() => onChange(values.slice(0, -1))}
           disabled={!canRemove}
         >
-          − Kurangi elemen
+          <Minus aria-hidden="true" />
+          Kurangi
         </Button>
       </div>
-      <p className="text-sm text-muted-foreground">
-        Boleh {MIN_ARRAY_LENGTH}–{MAX_ARRAY_LENGTH} elemen. Elemen baru otomatis
-        dapat alamat berikutnya (+4 byte).
-      </p>
     </fieldset>
   );
 }

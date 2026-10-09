@@ -1,5 +1,6 @@
 "use client";
 
+import { Keyboard } from "lucide-react";
 import { type ReactNode, useState } from "react";
 
 import { CodePanel } from "@/components/code-panel";
@@ -82,12 +83,12 @@ export function LoopInputDemo() {
             name={name}
             values={input}
             onChange={changeInput}
-            legend="Angka yang diketik pengguna"
+            legend="Input keyboard"
           />
         </DataEditor>
       }
       visual={
-        <Panel title="Keyboard dan memori (simulasi)">
+        <Panel title="Keyboard → array">
           <div className="flex flex-col gap-4">
             <KeyboardQueue
               input={input}
@@ -104,7 +105,7 @@ export function LoopInputDemo() {
               frame={frame}
               length={length}
               arrayName={name}
-              activeLabel="Sedang diisi"
+              activeLabel="Diisi"
             />
           </div>
         </Panel>
@@ -115,7 +116,7 @@ export function LoopInputDemo() {
   );
 }
 
-/** What the student "types": values already read are struck through. */
+/** What the student "types", drawn as keycaps; read keys are struck through. */
 function KeyboardQueue({
   input,
   readCount,
@@ -127,30 +128,31 @@ function KeyboardQueue({
 }) {
   return (
     <div>
-      <p className="text-sm font-medium text-muted-foreground">
-        Yang diketik pengguna, dibaca scanf satu per satu:
+      <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+        <Keyboard aria-hidden="true" className="size-4" />
+        Input dari keyboard
       </p>
       <ol className="mt-2 flex flex-wrap gap-2">
         {input.map((value, index) => {
           const isReading = index === readingIndex;
           const isRead = index < readCount && !isReading;
           const tone = isReading
-            ? "border-active bg-active/10 font-semibold"
+            ? "border-active bg-active/10 font-semibold text-active"
             : isRead
               ? "border-border text-muted-foreground line-through"
-              : "border-border";
+              : "border-border bg-card";
           return (
             <li
               key={index}
-              className={`rounded-lg border px-2.5 py-1 font-mono text-base ${tone}`}
+              className={`flex min-w-11 justify-center rounded-lg border border-b-4 px-2.5 py-1 font-mono text-base transition-colors ${tone}`}
             >
               {value}
               <span className="sr-only">
                 {isReading
-                  ? " (sedang dibaca)"
+                  ? " (lagi dibaca)"
                   : isRead
-                    ? " (sudah dibaca)"
-                    : " (menunggu)"}
+                    ? " (udah dibaca)"
+                    : " (nunggu giliran)"}
               </span>
             </li>
           );
@@ -161,54 +163,43 @@ function KeyboardQueue({
 }
 
 function describe(frame: LoopFrame, name: string, length: number): ReactNode {
-  const code = (text: string) => <code className="font-mono">{text}</code>;
   switch (frame.phase) {
     case "init":
       return (
         <>
-          {code("int i = 0")} membuat penghitung i dan mengisinya 0. Bagian ini
-          hanya jalan sekali, di awal. Semua kotak {name} masih “?” karena belum
-          diisi apa pun.
+          <code>int i = 0</code>: bikin penghitung i, mulai dari 0. Bagian ini
+          cuma jalan sekali.
         </>
       );
     case "check":
       return frame.condition ? (
         <>
-          Cek kondisi {code("i < ukuran_array")}: {frame.i} &lt; {length},
-          hasilnya <strong>benar</strong>. Jadi badan loop dijalankan.
+          Cek <code>i &lt; ukuran_array</code>: {frame.i} &lt; {length}? Bener,
+          masuk ke loop.
         </>
       ) : (
         <>
-          Cek kondisi lagi: {length} &lt; {length}, hasilnya{" "}
-          <strong>salah</strong>. Loop berhenti, jadi{" "}
-          {code(`${name}[${length}]`)} yang memang tidak ada tidak pernah
-          disentuh.
+          Cek lagi: {length} &lt; {length}? <strong>Salah</strong>, loop
+          berhenti. <code>{`${name}[${length}]`}</code> nggak pernah disentuh.
         </>
       );
     case "body":
       return (
         <>
-          scanf membaca{" "}
+          scanf baca{" "}
           <RoleChip role="value">{frame.cells[frame.activeIndex]}</RoleChip>{" "}
-          dari keyboard dan menyimpannya ke{" "}
-          {code(`${name}[${frame.activeIndex}]`)}. Tanda &amp; di{" "}
-          {code(`&${name}[i]`)} memberi tahu alamat kotak tujuannya (dibahas di
-          Modul 5).
+          dari keyboard, terus disimpen ke{" "}
+          <code>{`${name}[${frame.activeIndex}]`}</code>. Tanda &amp; itu alamat
+          tujuannya (dibahas di Modul 5).
         </>
       );
     case "increment":
       return (
         <>
-          {code("i++")} menaikkan i dari {frame.i - 1} menjadi {frame.i}.
-          Setelah ini kondisi dicek lagi.
+          <code>i++</code>: i naik dari {frame.i - 1} jadi {frame.i}.
         </>
       );
     case "done":
-      return (
-        <>
-          Loop selesai! scanf dipanggil tepat {length} kali, dan semua kotak
-          sudah terisi: {frame.cells.join(", ")}.
-        </>
-      );
+      return <>Beres! scanf jalan {length} kali, semua kotak udah keisi.</>;
   }
 }

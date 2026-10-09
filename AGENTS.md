@@ -32,7 +32,8 @@ deployed to GitHub Pages.
 - The base path is injected at build time through `PAGES_BASE_PATH`. Navigate
   with `next/link`; never hard-code `/`-rooted URLs to files in `public/`.
 - No backend, database, auth, external APIs, analytics or state libraries.
-  Every new dependency needs a stated reason.
+  Every new dependency needs a stated reason; the one UI dependency is
+  `lucide-react`, for icons.
 - Simulations never claim to run real C. Addresses are illustrative decimals:
   base 1000, +4 per `int`. An index is a position, not an address.
   Out-of-bounds access is never shown as safe.
@@ -51,13 +52,29 @@ deployed to GitHub Pages.
   never on a page.
 - kebab-case files, PascalCase components, `useX` hooks, `handleX` handlers and
   `onX` props.
-- English code, identifiers and comments; casual, clear Indonesian for all
-  user-facing copy.
+- English code, identifiers and comments; Indonesian for all user-facing copy
+  (see below).
 - Strict TypeScript: no `any`, no `!`, no `as` except `as const` and `Route`;
   model UI states as discriminated unions; `import { type X }` for types; `@/`
   instead of `../../`.
 - Comments explain why, never what. JSDoc only for exported `src/lib` functions
   with a non-obvious contract.
+
+## Copy and visuals
+
+- Visuals carry the explanation; text only labels, nudges and confirms. If a
+  diagram can show it, draw it; otherwise one short sentence, not a paragraph.
+- Write Indonesian the way a Gen Z college student talks to a friend: `kamu`,
+  `nggak`, `udah`, `pakai`, `terus`, `kayak`, `buat`. Simple words; nothing
+  formal, academic or generated-sounding (`adalah`, `merupakan`, `tidak`,
+  `pengguna`, `dengan demikian`). Keep real C terms such as undefined behavior.
+- Module page order: a one-line question beside the title, an analogy of one or
+  two sentences ("Bayangin aja") above the stage, the legend for the roles the
+  page draws, then the stage. No quiz for now.
+- Icons come from `lucide-react`, `aria-hidden` beside a word; an icon-only
+  control keeps an sr-only name. Stepping always goes through `StepControls`.
+- Code always goes through `CodePanel` (MBG's static editor look and `--code-*`
+  palette); never style a snippet by hand.
 
 ## Styling: MBG design system
 
@@ -65,6 +82,9 @@ deployed to GitHub Pages.
   `web/src/app/globals.css` (`C:/Users/Jakson/Workspace/Projects/my-bootcamp-gweh`).
   Use token utilities: no raw hex in components, no arbitrary `[…]` values
   without a justifying comment.
+- Light and dark: every colour token has a value on `:root` and on
+  `:root[data-theme="dark"]`, and new ones need both, at AA in both. Use
+  `dark:` only for swaps such as the theme icon.
 - Roles: index teal, value green, address amber, pointer purple, active indigo,
   out-of-bounds red. Always show the role's word next to its colour.
 - Animate only through `motion-safe:` or plain transitions; keep the global

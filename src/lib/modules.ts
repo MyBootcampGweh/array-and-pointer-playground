@@ -12,47 +12,47 @@ export const MODULES: readonly ModuleInfo[] = [
   {
     number: 1,
     title: "Indeks Array",
-    summary: "Bedakan indeks (posisi) dan nilai (isi) di dalam array.",
+    summary: "Indeks itu posisi, nilai itu isinya.",
   },
   {
     number: 2,
     title: "Looping Input Array",
-    summary: "Lihat for-loop mengisi array satu per satu lewat scanf.",
+    summary: "for-loop ngisi array satu per satu pakai scanf.",
   },
   {
     number: 3,
     title: "Looping Output Array",
-    summary: "Ikuti for-loop membaca dan mencetak isi array.",
+    summary: "for-loop baca isi array, terus nampilin satu per satu.",
   },
   {
     number: 4,
     title: "Array di Memori",
-    summary: "Elemen array berjejer di memori, tiap int memakai 4 byte.",
+    summary: "Elemen array berjejer di memori, tiap int makan 4 byte.",
   },
   {
     number: 5,
     title: "Ampersand (&) di scanf",
-    summary: "Kenapa scanf butuh alamat variabel, bukan nilainya.",
+    summary: "scanf butuh alamat variabel, makanya pakai &.",
   },
   {
     number: 6,
     title: "Pointer ke Satu Variabel",
-    summary: "Pointer menyimpan alamat, bukan nilai.",
+    summary: "Pointer nyimpen alamat, bukan nilai.",
   },
   {
     number: 7,
-    title: "Dereferensi dan Mengubah Nilai",
-    summary: "Pakai *ptr untuk membaca dan mengubah nilai lewat alamat.",
+    title: "Dereferensi & Ubah Nilai",
+    summary: "Pakai *ptr buat baca dan ganti nilai lewat alamatnya.",
   },
   {
     number: 8,
-    title: "Mengganti Target Pointer",
-    summary: "Arahkan pointer ke variabel lain tanpa mengubah nilai apa pun.",
+    title: "Ganti Target Pointer",
+    summary: "Pindahin pointer ke variabel lain, nilainya nggak berubah.",
   },
   {
     number: 9,
-    title: "Pointer dan Array",
-    summary: "ptr + 1 maju satu elemen, dan nilai[1] sama dengan *(ptr + 1).",
+    title: "Pointer & Array",
+    summary: "ptr + 1 maju satu elemen, nilai[1] sama dengan *(ptr + 1).",
   },
 ];
 
