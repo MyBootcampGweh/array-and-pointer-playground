@@ -141,34 +141,32 @@ function describe(
     case "declare":
       return (
         <>
-          Bikin Variable <RoleChip role="variable">{name}</RoleChip> dengan
-          Value <RoleChip role="value">{value}</RoleChip>. Letaknya di{" "}
-          <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>.
+          Variable <RoleChip role="variable">{name}</RoleChip> nyimpen {value}{" "}
+          di <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>.
         </>
       );
     case "address-of":
       return (
         <>
-          <RoleChip role="address">&amp;{name}</RoleChip> artinya “Address-nya{" "}
-          {name}”. Hasilnya <RoleChip role="address">{BASE_ADDRESS}</RoleChip>,
-          bukan Value-nya.
+          <RoleChip role="address">&amp;{name}</RoleChip> artinya Address-nya{" "}
+          {name}: <RoleChip role="address">{BASE_ADDRESS}</RoleChip>, bukan
+          Value-nya.
         </>
       );
     case "store":
       return (
         <>
           Pointer <RoleChip role="pointer">{pointer}</RoleChip> nyimpen{" "}
-          <RoleChip role="address">{BASE_ADDRESS}</RoleChip>. Isi Pointer itu
-          Address, bukan Value {value}.
+          <RoleChip role="address">{BASE_ADDRESS}</RoleChip>: isinya Address,
+          bukan Value {value}.
         </>
       );
     case "point":
       return (
         <>
-          Address di <RoleChip role="pointer">{pointer}</RoleChip> sama dengan
-          Address <RoleChip role="variable">{name}</RoleChip>, jadi{" "}
-          <RoleChip role="pointer">{pointer}</RoleChip> <strong>nunjuk</strong>{" "}
-          ke <RoleChip role="variable">{name}</RoleChip>. Panahnya cuma gambaran
+          <RoleChip role="pointer">{pointer}</RoleChip> nyimpen Address-nya{" "}
+          {name}, jadi {pointer} <strong>nunjuk</strong> ke{" "}
+          <RoleChip role="variable">{name}</RoleChip>; panahnya cuma gambaran
           dari Address itu.
         </>
       );
