@@ -95,7 +95,7 @@ export function PointerTargetDemo() {
           </div>
         </DataEditor>
       }
-      hint="Pilih target Pointer-nya langsung di baris kode di bawah."
+      hint="Pilih target Pointer-nya di baris kode, atau klik kotaknya."
       visual={
         <>
           <VariableDiagram
@@ -103,8 +103,10 @@ export function PointerTargetDemo() {
               name: names[key],
               value: values[key],
               address: ADDRESSES[key],
+              isActive: key === target,
               isAddressActive: key === target,
             }))}
+            onSelect={(position) => setTarget(TARGETS[position] ?? target)}
             marks={[
               {
                 kind: "pointer",
@@ -147,9 +149,7 @@ export function PointerTargetDemo() {
             <>
               <RoleChip role="pointer">{pointer}</RoleChip> nyimpen{" "}
               <RoleChip role="address">Address {ADDRESSES.a}</RoleChip>,
-              Address-nya <RoleChip role="variable">{names.a}</RoleChip>.
-              Makanya panahnya ke <RoleChip role="variable">{names.a}</RoleChip>
-              .
+              Address-nya {names.a}, makanya panahnya ke situ.
             </>
           ) : (
             <>
@@ -158,10 +158,8 @@ export function PointerTargetDemo() {
               </code>{" "}
               (tanpa *) cuma ganti isi{" "}
               <RoleChip role="pointer">{pointer}</RoleChip> jadi{" "}
-              <RoleChip role="address">{ADDRESSES.b}</RoleChip>. Panahnya
-              pindah, tapi Value <RoleChip role="variable">{names.a}</RoleChip>{" "}
-              tetep {values.a} dan{" "}
-              <RoleChip role="variable">{names.b}</RoleChip> tetep {values.b}.
+              <RoleChip role="address">{ADDRESSES.b}</RoleChip>; Value {names.a}{" "}
+              tetep {values.a} dan {names.b} tetep {values.b}.
             </>
           )}
         </Narration>
