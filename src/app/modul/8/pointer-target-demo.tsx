@@ -70,7 +70,7 @@ export function PointerTargetDemo() {
             {TARGETS.map((key) => (
               <NameField
                 key={key}
-                label={`Nama Variable ${key.toUpperCase()}`}
+                label={`Nama variabel ${key.toUpperCase()}`}
                 value={names[key]}
                 taken={[names[key === "a" ? "b" : "a"], pointer]}
                 onCommit={(next) => rename(key, next)}

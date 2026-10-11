@@ -10,6 +10,7 @@ export default function ArrayIndexingPage() {
   return (
     <ModuleFrame
       number={1}
+      isWorkspace
       analogy={
         <>
           Index itu nomor loker, Value itu barang di dalamnya. Nomornya mulai

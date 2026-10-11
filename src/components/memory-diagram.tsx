@@ -56,14 +56,18 @@ function RowHeader({
   );
 }
 
-/** Name above its boxes; `w-0 min-w-full` lets a long name wrap, not widen. */
+/**
+ * Name above its boxes; `w-0 min-w-full` lets a long name wrap, not widen.
+ * The name keeps its own width and the rules take what is left, so a short
+ * name over three narrow boxes never breaks in two.
+ */
 function NameLabel({ name, isArray }: { name: string; isArray: boolean }) {
   return (
-    <div className="flex w-0 min-w-full items-center gap-1.5 pb-1">
+    <div className="flex w-0 min-w-full items-center justify-center gap-1.5 pb-1">
       {isArray ? (
         <span aria-hidden="true" className="h-0.5 flex-1 bg-variable/60" />
       ) : null}
-      <span className="min-w-0 flex-1 text-center font-mono text-sm font-semibold wrap-anywhere text-variable-ink sm:text-base">
+      <span className="min-w-0 text-center font-mono text-sm font-semibold wrap-anywhere text-variable-ink sm:text-base">
         {name}
       </span>
       {isArray ? (
@@ -414,7 +418,7 @@ export function ArrayDiagram({
         </caption>
         <tbody>
           <tr>
-            <RowHeader className="text-variable-ink">Variable</RowHeader>
+            <RowHeader className="text-variable-ink">Variabel</RowHeader>
             {columns.map((column, position) =>
               position === firstElement ? (
                 <td key="name" colSpan={values.length}>
@@ -557,11 +561,11 @@ export function VariableDiagram({
     <div className={SCROLLER}>
       <table className="mx-auto border-separate border-spacing-x-3 border-spacing-y-0 sm:border-spacing-x-6">
         <caption className="sr-only">
-          Variable di Memory: nama, Value, dan Address
+          Variabel di Memory: nama, Value, dan Address
         </caption>
         <tbody>
           <tr>
-            <RowHeader className="text-variable-ink">Variable</RowHeader>
+            <RowHeader className="text-variable-ink">Variabel</RowHeader>
             {variables.map((variable) => (
               <td key={variable.name}>
                 <NameLabel name={variable.name} isArray={false} />

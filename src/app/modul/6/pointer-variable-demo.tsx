@@ -81,7 +81,7 @@ export function PointerVariableDemo() {
         <DataEditor onRestore={restoreExample}>
           <div className="grid gap-4 sm:grid-cols-2">
             <NameField
-              label="Nama Variable"
+              label="Nama variabel"
               value={name}
               taken={[pointer]}
               onCommit={changeName}
@@ -141,7 +141,7 @@ function describe(
     case "declare":
       return (
         <>
-          Variable <RoleChip role="variable">{name}</RoleChip> nyimpen {value}{" "}
+          Variabel <RoleChip role="variable">{name}</RoleChip> nyimpen {value}{" "}
           di <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>.
         </>
       );

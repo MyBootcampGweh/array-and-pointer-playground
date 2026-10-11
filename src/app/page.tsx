@@ -1,9 +1,9 @@
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, Info } from "lucide-react";
 import Link from "next/link";
 
 import { ArrayDiagram } from "@/components/memory-diagram";
 import { type Role, RoleChip, buttonClass } from "@/components/ui";
-import { addressOf } from "@/lib/memory";
+import { INT_SIZE_BYTES, addressOf } from "@/lib/memory";
 import { MODULES, moduleHref } from "@/lib/modules";
 
 export default function HomePage() {
@@ -18,8 +18,8 @@ export default function HomePage() {
             Array &amp; Pointer Playground
           </h1>
           <p className="text-lg leading-relaxed text-muted-foreground">
-            Index, Value, Address, Pointer. Klik, ganti angkanya, terus liat
-            sendiri apa yang kejadian di Memory.
+            Belajar array dan Pointer di C lewat simulasi. Klik, ganti angkanya,
+            terus lihat perubahan di Memory.
           </p>
           <Link
             href={moduleHref(1)}
@@ -65,7 +65,7 @@ const FIGURE_TARGET = 1;
 
 /** The colour key, in the palette's own words. */
 const KEY: readonly { role: Role; term: string; meaning: string }[] = [
-  { role: "variable", term: "Variable", meaning: "nama kotaknya" },
+  { role: "variable", term: "Variabel", meaning: "nama kotaknya" },
   { role: "index", term: "Index", meaning: "posisi di array, mulai dari 0" },
   { role: "value", term: "Memory", meaning: "kotak yang nyimpen Value" },
   { role: "address", term: "Address", meaning: "lokasi kotaknya" },
@@ -89,7 +89,12 @@ function MemoryFigure() {
           },
         ]}
       />
-      <figcaption>
+      <figcaption className="flex flex-col gap-4">
+        <p className="flex gap-2 text-sm text-muted-foreground">
+          <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+          Address di gambar ini simulasi: mulai {addressOf(0)}, tiap int memakai{" "}
+          {INT_SIZE_BYTES} byte.
+        </p>
         <ul aria-label="Arti warna" className="grid gap-2 sm:grid-cols-2">
           {KEY.map(({ role, term, meaning }) => (
             <li key={role} className="flex items-center gap-2">

@@ -70,9 +70,10 @@ deployed to GitHub Pages.
   `nggak`, `udah`, `pakai`, `terus`, `kayak`, `buat`. Simple words; nothing
   formal, academic or generated-sounding (`adalah`, `merupakan`, `tidak`,
   `pengguna`, `dengan demikian`). Keep real C terms such as undefined behavior.
-- Role terms are English and capitalised, always: Index, Value, Address, plus
-  Variable, Memory and Pointer. Never write `indeks`, `nilai` or `alamat` as
-  words; C identifiers in code, such as the array `nilai`, are fine.
+- Role terms are English and capitalised, always: Index, Value, Address,
+  Memory and Pointer; "array" stays lowercase. A variable is the Indonesian
+  "variabel" ("Variabel" as a label). Never write `indeks`, `nilai` or `alamat`
+  as words; C identifiers in code, such as the array `nilai`, are fine.
 - Module page: the title, its analogy ("Bayangin aja", one or two sentences)
   right below it, then the stage. No question, legend row or quiz.
 - Stage: code on the left with `DataEditor` under it, open by default; on the
@@ -81,18 +82,20 @@ deployed to GitHub Pages.
   divider (`SplitView`, default 50/50, remembered per viewer) sits between the
   sides and each side scrolls on its own; on a phone the card comes before the
   editor.
-- New workspace (Module 1 so far; the target for the rest): a sticky control
-  bar above `SplitView editorOnTop`, with Ulangi Simulasi, Sebelumnya,
-  Putar/Jeda (Putar Ulang at the end) and Berikutnya; left, the compact "Atur
-  Array" editor above the code; right, one card with the narration, the array,
-  a large expression with its result (`nilai[2] → 78`) and a small Output. The
-  program is one definition in `src/lib` that generates both the code and the
-  run's snapshots. Fields apply on Enter or blur, and only an accepted change
-  restarts the run. Its array strip is drawn next to the module: neutral boxes,
-  a grey outline for the chosen Index, and the role colour only on the box
-  being read; no Address or Pointer row. Modules 2–9 keep `Stage` until they
-  move.
-- On the old stage, memory is drawn by `memory-diagram.tsx`: rows Variable,
+- New workspace (Module 1 so far; the target for the rest): with
+  `isWorkspace`, `ModuleFrame` drops the centred column for the full width, a
+  compact header and an outline next-module link, and `SplitView` gives
+  full-height panes with 20px padding and a 1px divider. A sticky control bar
+  sits above it: Ulangi Simulasi, Sebelumnya, Putar/Jeda (Putar Ulang at the
+  end) and Berikutnya. Left, the compact "Atur Array" editor above the code;
+  right, one card with the narration, the array, a large expression with its
+  result (`nilai[2] → 78`) and a small Output. The program is one definition
+  in `src/lib` that generates both the code and the run's snapshots. Fields
+  apply on Enter or blur, and only an accepted change restarts the run. Its
+  array strip is drawn next to the module: neutral boxes, a grey outline for
+  the chosen Index, and the role colour only on the box being read; no Address
+  or Pointer row. Modules 2–9 keep `Stage` until they move.
+- On the old stage, memory is drawn by `memory-diagram.tsx`: rows Variabel,
   Index, Value, Address; whatever holds an Address (a pointer, `&x`, a loop
   counter) sits in a row under the column it points at, with an arrow up.
   Nothing is drawn across columns; a mark that changes column slides there.
@@ -115,7 +118,7 @@ deployed to GitHub Pages.
 - Light and dark: every colour token has a value on `:root` and on
   `:root[data-theme="dark"]`, and new ones need both, at AA in both. Use
   `dark:` only for swaps such as the theme icon.
-- Roles use the project palette: Variable blue `#3478F6`, Index red
+- Roles use the project palette: Variabel blue `#3478F6`, Index red
   `#E53935`, Memory (Value) green `#2EAD67`, Address orange `#F28C28`, Pointer
   yellow `#D9A800`. The base colour fills, borders and draws arrows; text uses
   the role's `-ink` token, since most bases miss AA as text on white. The

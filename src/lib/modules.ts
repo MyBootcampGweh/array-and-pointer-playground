@@ -27,16 +27,17 @@ export const MODULES: readonly ModuleInfo[] = [
   {
     number: 4,
     title: "Array di Memory",
-    summary: "Elemen array berjejer di Memory, tiap int makan 4 byte.",
+    summary:
+      "Elemen array berjejer di Memory. Di simulasi ini, tiap int memakai 4 byte.",
   },
   {
     number: 5,
     title: "Ampersand (&) di scanf",
-    summary: "scanf butuh Address Variable, makanya pakai &.",
+    summary: "scanf butuh Address variabel, makanya pakai &.",
   },
   {
     number: 6,
-    title: "Pointer ke Satu Variable",
+    title: "Pointer ke Satu Variabel",
     summary: "Pointer nyimpen Address, bukan Value.",
   },
   {
@@ -47,12 +48,13 @@ export const MODULES: readonly ModuleInfo[] = [
   {
     number: 8,
     title: "Ganti Target Pointer",
-    summary: "Pindahin Pointer ke Variable lain, Value-nya nggak berubah.",
+    summary: "Pindahin Pointer ke variabel lain, Value-nya nggak berubah.",
   },
   {
     number: 9,
     title: "Pointer & Array",
-    summary: "ptr + 1 maju satu elemen, nilai[1] sama dengan *(ptr + 1).",
+    summary:
+      "*(ptr + 1) dan nilai[1] ngambil Value yang sama, asal ptr nunjuk ke elemen pertama.",
   },
 ];
 

@@ -22,7 +22,7 @@ export function RunControls({ stepper }: { stepper: Stepper }) {
     <div
       role="toolbar"
       aria-label="Kontrol simulasi"
-      className="sticky top-0 z-20 -mx-4 flex flex-wrap items-center gap-2 border-b bg-background/90 px-4 py-1.5 backdrop-blur-sm sm:-mx-6 sm:px-6"
+      className="sticky top-0 z-20 flex flex-wrap items-center gap-2 border-y bg-background/90 px-4 py-1.5 backdrop-blur-sm sm:px-6"
     >
       <Button
         onClick={stepper.reset}

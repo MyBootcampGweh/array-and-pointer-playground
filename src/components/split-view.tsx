@@ -51,13 +51,16 @@ export function SplitView({
   code,
   editor,
   visual,
-  editorOnTop = false,
+  isWorkspace = false,
 }: {
   code: ReactNode;
   editor: ReactNode;
   visual: ReactNode;
-  /** From `lg` up, the editor sits above the code (the new Module 1 layout). */
-  editorOnTop?: boolean;
+  /**
+   * The new workspace (Module 1 so far): full width with roomy panes, the
+   * editor above the code, and a hairline divider instead of a gutter.
+   */
+  isWorkspace?: boolean;
 }) {
   const containerRef = useRef<HTMLDivElement>(null);
   const saved = useSyncExternalStore(
@@ -115,36 +118,51 @@ export function SplitView({
     }
   }
 
-  // Each side scrolls on its own; the padding (undone by the container's
-  // negative margin) keeps card shadows and focus rings inside the scroller.
-  const panel = "lg:overflow-y-auto lg:p-2";
+  // Each side scrolls on its own. On the old stage the padding (undone by the
+  // container's negative margin) keeps card shadows and focus rings inside the
+  // scroller; the workspace's panes keep 20px of room of their own.
+  const panel = `lg:overflow-y-auto ${isWorkspace ? "lg:p-5" : "lg:p-2"}`;
+  // The header scrolls away, so the workspace may fill the screen less a
+  // little air; anything taller scrolls inside its own side. Workspace panes
+  // always take that height, so the divider runs top to bottom.
+  const layout = isWorkspace
+    ? "px-4 py-4 sm:px-6 lg:h-[calc(100svh-4rem)] lg:p-0"
+    : "lg:-m-2 lg:max-h-[calc(100svh-4rem)]";
 
   return (
     <div
       ref={containerRef}
-      // The header scrolls away, so the workspace may fill the screen less a
-      // little air; anything taller scrolls inside its own side.
-      className={`flex flex-col gap-6 lg:-m-2 lg:max-h-[calc(100svh-4rem)] lg:flex-row lg:gap-0 ${isDragging ? "lg:cursor-col-resize lg:select-none" : ""}`}
+      className={`flex flex-col gap-6 lg:flex-row lg:gap-0 ${layout} ${isDragging ? "lg:cursor-col-resize lg:select-none" : ""}`}
     >
       <div
         className={`max-lg:contents lg:flex lg:min-w-0 lg:shrink-0 lg:flex-col lg:gap-4 ${panel}`}
         // Half the divider's width comes off each side, so 50 is a true half.
-        style={{ width: `calc(${split}% - 0.75rem)` }}
+        style={{
+          width: `calc(${split}% - ${isWorkspace ? "0.5px" : "0.75rem"})`,
+        }}
       >
         <div
-          className={`min-w-0 max-lg:order-1 ${editorOnTop ? "lg:order-last" : ""}`}
+          className={`min-w-0 max-lg:order-1 ${isWorkspace ? "lg:order-last" : ""}`}
         >
           {code}
         </div>
         <div className="min-w-0 max-lg:order-3">{editor}</div>
       </div>
-      <div className="hidden w-6 shrink-0 flex-col items-center gap-2 py-2 lg:flex">
+      {/* The workspace draws only the 1px line; its 16px grab area overlaps
+          the panes' padding, so the divider stays easy to hit. */}
+      <div
+        className={
+          isWorkspace
+            ? "relative hidden w-px shrink-0 lg:block"
+            : "hidden w-6 shrink-0 flex-col items-center gap-2 py-2 lg:flex"
+        }
+      >
         {split !== DEFAULT_SPLIT ? (
           <button
             type="button"
             onClick={() => choose(DEFAULT_SPLIT)}
             title="Balikin lebar panel jadi 50/50"
-            className="flex size-6 shrink-0 items-center justify-center rounded-md text-muted-foreground ring-1 ring-border transition-colors hover:bg-muted hover:text-foreground"
+            className={`flex size-6 shrink-0 items-center justify-center rounded-md bg-background text-muted-foreground ring-1 ring-border transition-colors hover:bg-muted hover:text-foreground ${isWorkspace ? "absolute top-3 left-1/2 z-10 -translate-x-1/2" : ""}`}
           >
             <Columns2 aria-hidden="true" className="size-3.5" />
             <span className="sr-only">Balikin lebar panel jadi 50/50</span>
@@ -165,7 +183,7 @@ export function SplitView({
           onPointerCancel={() => setIsDragging(false)}
           onDoubleClick={() => choose(DEFAULT_SPLIT)}
           onKeyDown={handleKeyDown}
-          className="group relative flex w-full flex-1 cursor-col-resize touch-none items-center justify-center rounded-md"
+          className={`group flex cursor-col-resize touch-none items-center justify-center ${isWorkspace ? "absolute inset-y-0 left-1/2 w-4 -translate-x-1/2" : "relative w-full flex-1 rounded-md"}`}
         >
           <span
             aria-hidden="true"

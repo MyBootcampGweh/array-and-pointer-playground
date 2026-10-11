@@ -108,7 +108,7 @@ export function DereferenceDemo() {
         <DataEditor onRestore={restoreExample}>
           <div className="grid gap-4 sm:grid-cols-2">
             <NameField
-              label="Nama Variable"
+              label="Nama variabel"
               value={name}
               taken={[pointer, ...SNIPPET_NAMES]}
               onCommit={changeName}

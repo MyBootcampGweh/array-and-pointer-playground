@@ -56,7 +56,7 @@ export function ScanfAddressDemo() {
       editor={
         <DataEditor onRestore={() => changeName(DEFAULT_NAME)}>
           <NameField
-            label="Nama Variable"
+            label="Nama variabel"
             value={name}
             taken={["scanf"]}
             onCommit={changeName}
