@@ -1,6 +1,8 @@
 import { Info, MousePointerClick, Terminal, TriangleAlert } from "lucide-react";
 import { type ComponentProps, type ReactNode } from "react";
 
+import { SplitView } from "@/components/split-view";
+
 type ButtonVariant = "primary" | "outline" | "ghost";
 
 const BUTTON_VARIANTS: Record<ButtonVariant, string> = {
@@ -120,8 +122,7 @@ export function ExpressionBar({ children }: { children: ReactNode }) {
 /**
  * The module stage. Code and its editor on the left; on the right one card
  * holds the whole visualisation: what to do, the diagram, its controls and
- * the explanation, so the eye never has to hunt between panels. On a phone
- * the card comes right after the code, before the editor.
+ * the explanation, so the eye never has to hunt between panels.
  */
 export function Stage({
   code,
@@ -143,33 +144,33 @@ export function Stage({
   footnote?: ReactNode;
 }) {
   return (
-    // `auto_1fr`: when the card is the taller side, the spare height goes
-    // under the editor instead of opening a gap between code and editor.
-    <div className="grid gap-6 lg:grid-cols-2 lg:grid-rows-[auto_1fr] lg:items-start lg:gap-x-8 lg:gap-y-4">
-      <div className="min-w-0 lg:col-start-1 lg:row-start-1">{code}</div>
-      <section
-        aria-label="Visualisasi"
-        className="flex min-w-0 flex-col gap-5 rounded-2xl bg-card p-3 shadow-elevated ring-1 ring-foreground/10 sm:p-5 lg:col-start-2 lg:row-span-2 lg:row-start-1"
-      >
-        <p className="flex gap-2 text-sm text-muted-foreground">
-          <MousePointerClick
-            aria-hidden="true"
-            className="mt-0.5 size-4 shrink-0"
-          />
-          <span>{hint}</span>
-        </p>
-        {visual}
-        {controls}
-        {narration}
-        {footnote ? (
+    <SplitView
+      code={code}
+      editor={editor}
+      visual={
+        <section
+          aria-label="Visualisasi"
+          className="flex min-w-0 flex-col gap-5 rounded-2xl bg-card p-3 shadow-elevated ring-1 ring-foreground/10 sm:p-5"
+        >
           <p className="flex gap-2 text-sm text-muted-foreground">
-            <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            <span>{footnote}</span>
+            <MousePointerClick
+              aria-hidden="true"
+              className="mt-0.5 size-4 shrink-0"
+            />
+            <span>{hint}</span>
           </p>
-        ) : null}
-      </section>
-      <div className="min-w-0 lg:col-start-1 lg:row-start-2">{editor}</div>
-    </div>
+          {visual}
+          {controls}
+          {narration}
+          {footnote ? (
+            <p className="flex gap-2 text-sm text-muted-foreground">
+              <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
+              <span>{footnote}</span>
+            </p>
+          ) : null}
+        </section>
+      }
+    />
   );
 }
 
