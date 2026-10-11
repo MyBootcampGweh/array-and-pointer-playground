@@ -190,23 +190,22 @@ function describe(
       return (
         <>
           <strong>* di deklarasi</strong> cuma tanda kalau{" "}
-          <RoleChip role="pointer">{pointer}</RoleChip> itu Pointer. Isinya{" "}
-          <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>,
-          Address-nya <RoleChip role="variable">{name}</RoleChip>.
+          <RoleChip role="pointer">{pointer}</RoleChip> itu Pointer, isinya{" "}
+          <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>.
         </>
       );
     case "read-address":
       return (
         <>
-          <strong>* di depan {pointer}</strong> artinya “buka Address-nya”.
-          Pertama liat isi <RoleChip role="pointer">{pointer}</RoleChip> dulu:{" "}
+          <strong>* di depan {pointer}</strong> artinya “buka Address-nya”: cek
+          dulu isi <RoleChip role="pointer">{pointer}</RoleChip>, dapet{" "}
           <RoleChip role="address">{BASE_ADDRESS}</RoleChip>.
         </>
       );
     case "read-value":
       return (
         <>
-          Terus ikutin panahnya ke Address {BASE_ADDRESS}. Value di situ{" "}
+          Ikutin panahnya ke Address {BASE_ADDRESS}: Value di situ{" "}
           <RoleChip role="value">{value}</RoleChip>, itu yang ditampilin printf.
         </>
       );
@@ -217,8 +216,8 @@ function describe(
             *{pointer} = {newValue}
           </code>{" "}
           nulis <RoleChip role="value">{newValue}</RoleChip> ke Address{" "}
-          {BASE_ADDRESS}. <RoleChip role="variable">{name}</RoleChip> ikut
-          berubah, padahal nggak ada{" "}
+          {BASE_ADDRESS}, jadi <RoleChip role="variable">{name}</RoleChip> ikut
+          berubah tanpa{" "}
           <code>
             {name} = {newValue}
           </code>
@@ -228,10 +227,8 @@ function describe(
     case "done":
       return (
         <>
-          Beres! <RoleChip role="pointer">{pointer}</RoleChip> tetep{" "}
-          <RoleChip role="address">{BASE_ADDRESS}</RoleChip>, yang berubah Value
-          di Address itu. Jadi <RoleChip role="pointer">{pointer}</RoleChip> =
-          Address, <RoleChip role="pointer">*{pointer}</RoleChip> = Value.
+          Beres! <RoleChip role="pointer">{pointer}</RoleChip> = Address,{" "}
+          <RoleChip role="pointer">*{pointer}</RoleChip> = Value di Address itu.
         </>
       );
   }
