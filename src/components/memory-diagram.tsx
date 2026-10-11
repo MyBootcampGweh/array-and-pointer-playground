@@ -1,5 +1,7 @@
+"use client";
+
 import { TriangleAlert } from "lucide-react";
-import { type ReactNode } from "react";
+import { type ReactNode, useLayoutEffect, useRef } from "react";
 
 import { addressOf } from "@/lib/memory";
 
@@ -8,8 +10,9 @@ import { addressOf } from "@/lib/memory";
  * memory; the rows always mean the same thing and carry their role colour:
  * Variable (name), Index, Value (the box), Address. Whatever holds an Address
  * (a pointer, or `&angka` handed to scanf) sits in a row underneath, in the
- * same column, with an arrow up to the Address it holds. Nothing is measured
- * or drawn across columns, so labels never overlap at any width.
+ * same column, with an arrow up to the Address it holds. Nothing is drawn
+ * across columns, so labels never overlap at any width; a mark that changes
+ * column only slides over on its way.
  */
 
 const ROW_HEADER =
@@ -199,6 +202,47 @@ function MarkContent({ mark, hang }: { mark: Mark; hang: Hang }) {
   );
 }
 
+/**
+ * When a mark moves to another column it slides there from where it was, so
+ * the eye follows `ptr` or `i` instead of hunting for it. Positions are taken
+ * relative to the row, so resizing the panel never fakes a move.
+ */
+function useSlidingMarks() {
+  const rowRef = useRef<HTMLTableRowElement>(null);
+  const lastLeft = useRef(new Map<string, number>());
+  useLayoutEffect(() => {
+    const row = rowRef.current;
+    if (!row) {
+      return;
+    }
+    const rowLeft = row.getBoundingClientRect().left;
+    const reduceMotion = matchMedia("(prefers-reduced-motion: reduce)").matches;
+    const next = new Map<string, number>();
+    for (const node of row.querySelectorAll<HTMLElement>("[data-slide]")) {
+      const key = node.dataset.slide ?? "";
+      const left = node.getBoundingClientRect().left - rowLeft;
+      const before = lastLeft.current.get(key);
+      next.set(key, left);
+      if (
+        before !== undefined &&
+        Math.abs(before - left) > 1 &&
+        !reduceMotion
+      ) {
+        node.animate(
+          [
+            { transform: `translateX(${before - left}px)` },
+            { transform: "none" },
+          ],
+          // MBG's entrance curve (`--ease-entrance`): quick start, soft stop.
+          { duration: 350, easing: "cubic-bezier(0.22, 1, 0.36, 1)" },
+        );
+      }
+    }
+    lastLeft.current = next;
+  });
+  return rowRef;
+}
+
 function MarkRow({
   marks,
   columnKeys,
@@ -210,6 +254,7 @@ function MarkRow({
   /** Narrow columns: boxes at the ends hang inwards, not past the edge. */
   hangsInwards?: boolean;
 }) {
+  const rowRef = useSlidingMarks();
   const first = marks[0];
   if (!first) {
     return null;
@@ -218,7 +263,7 @@ function MarkRow({
   const isHidden = marks.every((mark) => mark.isHidden);
   const last = columnKeys.length - 1;
   return (
-    <tr className={isHidden ? "invisible" : undefined}>
+    <tr ref={rowRef} className={isHidden ? "invisible" : undefined}>
       <RowHeader className={style.text}>{style.header}</RowHeader>
       {columnKeys.map((column, position) => {
         const mark =
@@ -235,7 +280,11 @@ function MarkRow({
             key={position}
             className={`pt-1 text-center align-top ${mark?.isHidden ? "invisible" : ""}`}
           >
-            {mark ? <MarkContent mark={mark} hang={hang} /> : null}
+            {mark ? (
+              <div data-slide={marks.indexOf(mark)}>
+                <MarkContent mark={mark} hang={hang} />
+              </div>
+            ) : null}
           </td>
         );
       })}
@@ -495,10 +544,13 @@ export type DiagramVariable = {
 export function VariableDiagram({
   variables,
   marks = [],
+  onSelect,
 }: {
   variables: readonly DiagramVariable[];
   /** Pointers or `&x` arguments under the variables; `column` is the position. */
   marks?: readonly Mark[];
+  /** Turns each box into a button, e.g. to point a Pointer at it. */
+  onSelect?: (position: number) => void;
 }) {
   const columnKeys = variables.map((_, position) => position);
   return (
@@ -518,22 +570,40 @@ export function VariableDiagram({
           </tr>
           <tr>
             <RowHeader className="text-memory-ink">Value</RowHeader>
-            {variables.map((variable) => (
-              <td key={variable.name}>
-                <span
-                  className={`${BOX} ${VARIABLE_SIZE} relative rounded-xl ${boxTone(variable.isActive ?? false)}`}
-                >
+            {variables.map((variable, position) => {
+              const isActive = variable.isActive ?? false;
+              const look = `${BOX} ${VARIABLE_SIZE} relative rounded-xl ${boxTone(isActive)}`;
+              const content = (
+                <>
                   {variable.value ?? <Unassigned />}
                   {variable.alias ? (
-                    // On the box's corner, inside the column's spacing, so
-                    // showing it never moves anything else.
-                    <span className="absolute -top-3 -right-5 max-w-28 rounded-md bg-card px-1.5 font-mono text-xs leading-5 font-semibold wrap-anywhere text-pointer-ink ring-2 ring-pointer">
+                    // Beside the box, in the column's spacing: clear of the
+                    // name above and the Address below, and showing it never
+                    // moves anything else.
+                    <span className="absolute top-1/2 left-full ml-2 w-max max-w-28 -translate-y-1/2 rounded-md bg-card px-1.5 font-mono text-xs leading-5 font-semibold wrap-anywhere text-pointer-ink ring-2 ring-pointer">
                       {variable.alias}
                     </span>
                   ) : null}
-                </span>
-              </td>
-            ))}
+                </>
+              );
+              return (
+                <td key={variable.name}>
+                  {onSelect ? (
+                    <button
+                      type="button"
+                      aria-pressed={isActive}
+                      aria-label={`${variable.name}, Value ${variable.value ?? "belum diisi"}`}
+                      onClick={() => onSelect(position)}
+                      className={`${look} cursor-pointer hover:bg-memory/10`}
+                    >
+                      {content}
+                    </button>
+                  ) : (
+                    <span className={look}>{content}</span>
+                  )}
+                </td>
+              );
+            })}
           </tr>
           <tr>
             <RowHeader className="text-address-ink">Address</RowHeader>
