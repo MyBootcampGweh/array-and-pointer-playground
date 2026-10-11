@@ -1,6 +1,6 @@
 "use client";
 
-import { Minus, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 import { useState } from "react";
 
 import { AddressMath } from "@/components/address-math";
@@ -13,7 +13,7 @@ import {
 import { ArrayDiagram, type Mark } from "@/components/memory-diagram";
 import { ExpressionBar, Narration, RoleChip, Stage } from "@/components/ui";
 import { type CodeLine, arrayDeclaration } from "@/lib/c-syntax";
-import { BASE_ADDRESS, addressOf, clamp } from "@/lib/memory";
+import { BASE_ADDRESS, INT_SIZE_BYTES, addressOf, clamp } from "@/lib/memory";
 
 const DEFAULT_NAME = "nilai";
 const DEFAULT_POINTER = "ptr";
@@ -108,7 +108,7 @@ export function PointerArrayDemo() {
         </DataEditor>
       }
       hint={
-        <>Geser Pointer-nya pakai tombol − / + di kode, atau klik kotaknya.</>
+        <>Geser Pointer-nya pakai tombol panah di kode, atau klik kotaknya.</>
       }
       visual={
         <>
@@ -135,7 +135,7 @@ export function PointerArrayDemo() {
                 aria-disabled={offset === 0}
                 className={stepButton}
               >
-                <Minus aria-hidden="true" />
+                <ChevronLeft aria-hidden="true" />
                 <span className="sr-only">Mundur</span>
               </button>
               <span className="min-w-5 text-center text-index-ink">
@@ -147,7 +147,7 @@ export function PointerArrayDemo() {
                 aria-disabled={offset === last}
                 className={stepButton}
               >
-                <Plus aria-hidden="true" />
+                <ChevronRight aria-hidden="true" />
                 <span className="sr-only">Maju</span>
               </button>
               <span>)</span>
@@ -182,18 +182,17 @@ export function PointerArrayDemo() {
             </>
           ) : (
             <>
-              <RoleChip role="pointer">{moved}</RoleChip> maju {offset} elemen,
-              bukan {offset} byte:{" "}
+              <RoleChip role="pointer">{moved}</RoleChip> maju {offset} elemen (
+              {offset * INT_SIZE_BYTES} byte), bukan {offset} byte:{" "}
               <RoleChip role="address">Address {addressOf(offset)}</RoleChip>.
             </>
-          )}{" "}
-          Value di situ <RoleChip role="value">{value}</RoleChip>, sama kayak{" "}
-          <code>{`${name}[${offset}]`}</code>.
+          )}
           {offset === last ? (
             <>
               {" "}
               Ini elemen terakhir: <code>{`*(${pointer} + ${last + 1})`}</code>{" "}
-              udah di luar array (undefined behavior), makanya Maju dikunci.
+              udah di luar array (undefined behavior), makanya panah kanan
+              dikunci.
             </>
           ) : null}
         </Narration>
