@@ -75,39 +75,36 @@ deployed to GitHub Pages.
   "variabel" ("Variabel" as a label). Never write `indeks`, `nilai` or `alamat`
   as words; C identifiers in code, such as the array `nilai`, are fine.
 - Module page: the title, its analogy ("Bayangin aja", one or two sentences)
-  right below it, then the stage. No question, legend row or quiz.
-- Stage: code on the left with `DataEditor` under it, open by default; on the
-  right one card with a one-line hint, the diagram, its controls, the
-  narration and, only for a caveat, a short footnote. From `lg` up a draggable
-  divider (`SplitView`, default 50/50, remembered per viewer) sits between the
-  sides and each side scrolls on its own; on a phone the card comes before the
-  editor.
-- New workspace (Module 1 so far; the target for the rest): with
-  `isWorkspace`, `ModuleFrame` drops the centred column for the full width, a
-  compact header and an outline next-module link, and `SplitView` gives
-  full-height panes with 20px padding and a 1px divider. A sticky control bar
-  sits above it: Ulangi Simulasi, Sebelumnya, Putar/Jeda (Putar Ulang at the
-  end) and Berikutnya. Left, the compact "Atur Array" editor above the code;
-  right, one card with the narration, the array, a large expression with its
-  result (`nilai[2] → 78`) and a small Output. The program is one definition
-  in `src/lib` that generates both the code and the run's snapshots. Fields
-  apply on Enter or blur, and only an accepted change restarts the run. Its
-  array strip is drawn next to the module: neutral boxes, a grey outline for
-  the chosen Index, and the role colour only on the box being read; no Address
-  or Pointer row. Modules 2–9 keep `Stage` until they move.
-- On the old stage, memory is drawn by `memory-diagram.tsx`: rows Variabel,
-  Index, Value, Address; whatever holds an Address (a pointer, `&x`, a loop
-  counter) sits in a row under the column it points at, with an arrow up.
-  Nothing is drawn across columns; a mark that changes column slides there.
-  Reveal detail on interaction, not up front.
+  right below it, then the workspace. No question, legend row or quiz.
+- Workspace (`ModuleFrame` + `Workspace`): full width, a compact header and an
+  outline next-module link. A sticky control bar: Ulangi Simulasi,
+  Sebelumnya, Putar/Jeda (Putar Ulang at the end) and Berikutnya. From `lg`
+  up `SplitView` gives full-height panes with 20px padding, each scrolling on
+  its own, and a 1px divider (default 50/50, 30–70, remembered per viewer).
+  Left, the compact "Atur …" editor (`program-editor.tsx`) above the code;
+  right, one card with the narration, the picture, a large expression with
+  its result (`nilai[2] → 78`), a small Output and, only for a caveat, a
+  one-line footnote. On a phone: code, card, then the editor.
+- Each module's program is one definition in `src/lib` that generates both
+  the code and the run's snapshots; `useSimulation` holds it. Fields apply on
+  Enter or blur, and only an accepted change restarts the run (paused, typed
+  input cleared); Pulihkan Contoh brings back the example. scanf pauses the
+  run until the student answers in the terminal; an answer is part of the
+  run's history, and changing one drops the answers after it.
+- Memory is drawn by `memory-diagram.tsx` (Module 1 draws its own strip):
+  rows Variabel, Index, Value, Address; whatever holds an Address (a pointer,
+  `&x`, a loop counter) sits in a row under the column it points at, with an
+  arrow up. Boxes are neutral: dashed before their declaration runs, a grey
+  outline for the box about to be used, the role colour only on the box being
+  read or written. Nothing is drawn across columns; a mark that changes
+  column slides there.
 - Icons come from `lucide-react`, `aria-hidden` beside a word; an icon-only
-  control keeps an sr-only name. Stepping always goes through `useStepper`:
-  `StepControls` on the old stage, the control bar on the new workspace.
+  control keeps an sr-only name. Stepping always goes through `useStepper`
+  and the control bar.
 - Code always goes through `CodePanel` (MBG's editor frame); never style a
   snippet by hand. Mark the parts that are also in the diagram with their role
-  (`CodePart`) so code and picture share colours. Syntax is greyscale on the
-  old stage; the new workspace passes `colorSyntax` (keywords violet, strings
-  fuchsia, hues no role uses).
+  (`CodePart`) so code and picture share colours. Keywords are violet and
+  strings fuchsia, hues no role uses.
 
 ## Styling: MBG design system
 
