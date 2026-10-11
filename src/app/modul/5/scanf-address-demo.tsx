@@ -1,6 +1,6 @@
 "use client";
 
-import { CornerDownLeft, Info, Keyboard, RotateCcw } from "lucide-react";
+import { CornerDownLeft, Keyboard, RotateCcw } from "lucide-react";
 import { type SubmitEvent, useId, useState } from "react";
 
 import { CodePanel } from "@/components/code-panel";
@@ -106,7 +106,16 @@ export function ScanfAddressDemo() {
               />
               <Button type="submit" variant="primary">
                 <CornerDownLeft aria-hidden="true" />
-                Enter
+                {/* Icon only on phones, so the input keeps room beside Ulang. */}
+                <span className="max-sm:sr-only">Enter</span>
+              </Button>
+              <Button
+                onClick={reset}
+                aria-disabled={stored === null}
+                title="Ulang"
+              >
+                <RotateCcw aria-hidden="true" />
+                <span className="sr-only">Ulang</span>
               </Button>
             </div>
             {error ? (
@@ -119,39 +128,26 @@ export function ScanfAddressDemo() {
               </p>
             ) : null}
           </form>
-          <p className="flex gap-2 text-sm text-muted-foreground">
-            <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
-            Cuma simulasi, nggak ada program C yang jalan.
-          </p>
         </>
-      }
-      controls={
-        <div>
-          <Button onClick={reset} aria-disabled={stored === null}>
-            <RotateCcw aria-hidden="true" />
-            Ulang
-          </Button>
-        </div>
       }
       narration={
         <Narration>
           {stored === null ? (
             <>
-              <RoleChip role="address">{destination}</RoleChip> ngasih scanf{" "}
-              <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>, jadi
-              scanf tau angkanya mau ditaruh di mana. Value{" "}
-              <RoleChip role="variable">{name}</RoleChip> masih ?.
+              <RoleChip role="address">{destination}</RoleChip> ngasih tau scanf
+              harus naruh angkanya di{" "}
+              <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>.
             </>
           ) : (
             <>
               scanf baca <RoleChip role="value">{stored}</RoleChip>, terus naruh
-              di <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>.
-              Jadi Value <RoleChip role="variable">{name}</RoleChip> sekarang{" "}
-              {stored}.
+              di <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>,
+              alias kotak {name}.
             </>
           )}
         </Narration>
       }
+      footnote="Cuma simulasi, nggak ada program C yang jalan."
     />
   );
 }
