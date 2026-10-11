@@ -1,202 +1,350 @@
 "use client";
 
-import { ChevronLeft, ChevronRight } from "lucide-react";
-import { useState } from "react";
-
 import { AddressMath } from "@/components/address-math";
 import { CodePanel } from "@/components/code-panel";
+import { ArrayDiagram } from "@/components/memory-diagram";
 import {
-  ArrayValuesField,
-  DataEditor,
-  NameField,
-} from "@/components/data-editor";
-import { ArrayDiagram, type Mark } from "@/components/memory-diagram";
-import { ExpressionBar, Narration, RoleChip, Stage } from "@/components/ui";
-import { type CodeLine, arrayDeclaration } from "@/lib/c-syntax";
-import { BASE_ADDRESS, INT_SIZE_BYTES, addressOf, clamp } from "@/lib/memory";
-
-const DEFAULT_NAME = "nilai";
-const DEFAULT_POINTER = "ptr";
-const DEFAULT_VALUES: readonly number[] = [10, 20, 30, 40, 50];
-const DEFAULT_OFFSET = 1;
-const SNIPPET_NAMES = ["printf"];
+  DraftInput,
+  EditorCard,
+  EditorNotice,
+  FieldRow,
+  LengthSelect,
+  NameInput,
+  ValuesRow,
+} from "@/components/program-editor";
+import { Narration, RoleChip } from "@/components/ui";
+import { useSimulation } from "@/components/use-simulation";
+import {
+  ElementName,
+  ExpressionArrow,
+  ExpressionBox,
+  Footnote,
+  Muted,
+  Output,
+  PreviewNote,
+  Workspace,
+} from "@/components/workspace";
+import { BASE_ADDRESS, INT_SIZE_BYTES, addressOf } from "@/lib/memory";
+import {
+  EXAMPLE_PROGRAM,
+  MIN_LENGTH,
+  type PointerArrayProgram,
+  type PointerArrayStep,
+  editProgram,
+  parseOffset,
+  programLines,
+  runSnapshots,
+  takenNames,
+} from "@/lib/pointer-array";
 
 export function PointerArrayDemo() {
-  const [name, setName] = useState(DEFAULT_NAME);
-  const [pointer, setPointer] = useState(DEFAULT_POINTER);
-  const [values, setValues] = useState(DEFAULT_VALUES);
-  // The k in `ptr + k`. Clamped to the array, so the pointer can never be
-  // moved past either end: there is nothing safe to show out there.
-  const [offset, setOffset] = useState(DEFAULT_OFFSET);
-
-  const last = values.length - 1;
-  const moved = `${pointer} + ${offset}`;
-  const value = values[offset] ?? null;
-  const lines: CodeLine[] = [
-    arrayDeclaration(name, values.length, values),
-    [
-      "int *",
-      { text: pointer, role: "pointer" },
-      " = ",
-      { text: name, role: "variable" },
-      ";",
-    ],
-    "",
-    [
-      'printf("%d", *(',
-      { text: pointer, role: "pointer" },
-      " + ",
-      { text: String(offset), role: "index" },
-      "));",
-    ],
-  ];
-  // One box: `ptr + k` and the Address it gives. `ptr` itself (1000) is in
-  // the code and the formula; a second box would crowd a phone-width strip.
-  const marks: Mark[] = [
-    {
-      kind: "pointer",
-      column: offset,
-      name: offset === 0 ? pointer : moved,
-      value: addressOf(offset),
-      isActive: true,
-    },
-  ];
-
-  function move(by: number) {
-    setOffset((current) => clamp(current + by, 0, last));
-  }
-  function changeValues(next: readonly number[]) {
-    setValues(next);
-    setOffset((current) => Math.min(current, next.length - 1));
-  }
-  function restoreExample() {
-    setName(DEFAULT_NAME);
-    setPointer(DEFAULT_POINTER);
-    setValues(DEFAULT_VALUES);
-    setOffset(DEFAULT_OFFSET);
-  }
-
-  const stepButton =
-    "flex size-11 items-center justify-center rounded-lg bg-card ring-1 ring-border transition-colors hover:bg-background aria-disabled:cursor-not-allowed aria-disabled:opacity-50 [&_svg]:size-5";
+  const sim = useSimulation({
+    example: EXAMPLE_PROGRAM,
+    edit: editProgram,
+    run: runSnapshots,
+  });
+  const { program, now, handleEdit } = sim;
+  const { arrayName, pointer, values, offset } = program;
+  const pointerAt = now.pointerAt ?? 0;
 
   return (
-    <Stage
-      code={
-        <CodePanel lines={lines} activeLine={3} activePart={`*(${moved})`} />
-      }
+    <Workspace
+      stepper={sim.stepper}
       editor={
-        <DataEditor onRestore={restoreExample}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <NameField
+        <EditorCard
+          key={sim.editorKey}
+          title="Atur Array"
+          onRestore={() => handleEdit({ kind: "restore" })}
+        >
+          <FieldRow>
+            <NameInput
               label="Nama array"
-              value={name}
-              taken={[pointer, ...SNIPPET_NAMES]}
-              onCommit={setName}
+              value={arrayName}
+              taken={takenNames(program, "arrayName")}
+              onCommit={(name) =>
+                handleEdit({ kind: "rename", target: "arrayName", name })
+              }
             />
-            <NameField
+            <NameInput
               label="Nama Pointer"
               value={pointer}
-              taken={[name, ...SNIPPET_NAMES]}
-              onCommit={setPointer}
+              taken={takenNames(program, "pointer")}
+              onCommit={(name) =>
+                handleEdit({ kind: "rename", target: "pointer", name })
+              }
             />
-          </div>
-          <ArrayValuesField
-            name={name}
+          </FieldRow>
+          <FieldRow>
+            <LengthSelect
+              value={values.length}
+              min={MIN_LENGTH}
+              onChange={(length) => handleEdit({ kind: "resize", length })}
+            />
+            <DraftInput
+              label={`k di *(${pointer} + k)`}
+              value={offset}
+              format={String}
+              parse={(raw) => parseOffset(raw, values.length, pointer)}
+              onCommit={(next) => handleEdit({ kind: "offset", offset: next })}
+              inputMode="numeric"
+              className="w-40"
+              inputClassName="text-index-ink"
+            />
+          </FieldRow>
+          <EditorNotice notice={sim.notice} />
+          <ValuesRow
+            arrayName={arrayName}
             values={values}
-            onChange={changeValues}
+            onCommit={(index, value) =>
+              handleEdit({ kind: "value", index, value })
+            }
           />
-        </DataEditor>
+        </EditorCard>
       }
-      hint={
-        <>Geser Pointer-nya pakai tombol panah di kode, atau klik kotaknya.</>
+      code={
+        <CodePanel
+          lines={programLines(program, now.readIndex)}
+          activeLine={now.line}
+          activePart={now.part}
+        />
       }
-      visual={
-        <>
-          <ArrayDiagram
-            name={name}
-            values={values}
-            activeIndex={offset}
-            onSelect={setOffset}
-            showAddresses
-            marks={marks}
-          />
-          {/* Two halves that each stay on one line: on a phone the
-              expression breaks at `=`, never inside `*( … )`. */}
-          <ExpressionBar>
-            <span className="flex min-w-0 items-center gap-1.5">
-              <span>*(</span>
-              <span className="min-w-0 wrap-anywhere text-pointer-ink">
-                {pointer}
-              </span>
-              <span>+</span>
-              <button
-                type="button"
-                onClick={() => move(-1)}
-                aria-disabled={offset === 0}
-                className={stepButton}
-              >
-                <ChevronLeft aria-hidden="true" />
-                <span className="sr-only">Mundur</span>
-              </button>
-              <span className="min-w-5 text-center text-index-ink">
-                {offset}
-              </span>
-              <button
-                type="button"
-                onClick={() => move(1)}
-                aria-disabled={offset === last}
-                className={stepButton}
-              >
-                <ChevronRight aria-hidden="true" />
-                <span className="sr-only">Maju</span>
-              </button>
-              <span>)</span>
-            </span>
-            <span className="flex min-w-0 items-center gap-1.5">
-              <span className="text-muted-foreground">=</span>
-              <span className="min-w-0 wrap-anywhere">
-                <span className="text-variable-ink">{name}</span>[
-                <span className="text-index-ink">{offset}</span>]
-              </span>
-              <span className="text-muted-foreground">=</span>
-              <span className="text-memory-ink">{value}</span>
-            </span>
-          </ExpressionBar>
-          <AddressMath
-            index={offset}
-            baseCaption={`isi ${pointer}`}
-            indexCaption="elemen"
-          />
-        </>
-      }
-      narration={
-        <Narration>
-          {offset === 0 ? (
-            <>
-              <code>
-                {pointer} = {name}
-              </code>
-              : nama array itu Address elemen pertamanya, jadi{" "}
-              <RoleChip role="pointer">{pointer}</RoleChip> nyimpen{" "}
-              <RoleChip role="address">{BASE_ADDRESS}</RoleChip>.
-            </>
-          ) : (
-            <>
-              <RoleChip role="pointer">{moved}</RoleChip> maju {offset} elemen (
-              {offset * INT_SIZE_BYTES} byte), bukan {offset} byte:{" "}
-              <RoleChip role="address">Address {addressOf(offset)}</RoleChip>.
-            </>
-          )}
-          {offset === last ? (
-            <>
-              {" "}
-              Ini elemen terakhir: <code>{`*(${pointer} + ${last + 1})`}</code>{" "}
-              udah di luar array (undefined behavior), makanya panah kanan
-              dikunci.
-            </>
-          ) : null}
-        </Narration>
-      }
-    />
+    >
+      <Narration>
+        <Explanation program={program} now={now} />
+      </Narration>
+      <div className="flex flex-col gap-2">
+        <ArrayDiagram
+          name={arrayName}
+          values={values}
+          isDeclared={now.isDeclared}
+          activeIndex={now.readIndex}
+          addressIndex={
+            now.probe ??
+            (now.phase === "point" || now.phase === "increment"
+              ? now.pointerAt
+              : now.readIndex)
+          }
+          showAddresses
+          marks={[
+            {
+              kind: "pointer",
+              column: pointerAt,
+              name: pointer,
+              value: addressOf(pointerAt),
+              isActive: now.phase === "point" || now.phase === "increment",
+              isHidden: now.pointerAt === null,
+            },
+            {
+              kind: "label",
+              role: "address",
+              column: now.probe ?? pointerAt,
+              label: `${pointer} + ${offset}`,
+              isHidden: now.probe === null,
+            },
+          ]}
+        />
+        <PreviewNote isShown={!now.isDeclared}>
+          Preview array — deklarasi belum dijalankan.
+        </PreviewNote>
+      </div>
+      <Expression program={program} now={now} />
+      <Output pieces={now.terminal} freshFrom={sim.freshFrom} />
+      <Footnote>
+        Address di sini simulasi: mulai {BASE_ADDRESS}, tiap int{" "}
+        {INT_SIZE_BYTES} byte, jadi <code>{pointer} + 1</code> loncat{" "}
+        {INT_SIZE_BYTES} byte. Kalau int-nya beda ukuran, loncatnya ikut beda.
+      </Footnote>
+    </Workspace>
   );
+}
+
+/** One sentence on why the current line does what it does. */
+function Explanation({
+  program,
+  now,
+}: {
+  program: PointerArrayProgram;
+  now: PointerArrayStep;
+}) {
+  const { arrayName, pointer, offset } = program;
+  switch (now.phase) {
+    case "start":
+      return (
+        <>
+          Program masuk ke <code>main()</code>. Deklarasi array belum
+          dijalankan.
+        </>
+      );
+    case "declare":
+      return (
+        <>
+          Array <RoleChip role="variable">{arrayName}</RoleChip> berjejer di
+          Memory mulai{" "}
+          <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>.
+        </>
+      );
+    case "point":
+      return (
+        <>
+          Di sini <code>{arrayName}</code> otomatis dipakai sebagai Address
+          elemen pertamanya, jadi <RoleChip role="pointer">{pointer}</RoleChip>{" "}
+          nyimpen <RoleChip role="address">{BASE_ADDRESS}</RoleChip>; array-nya
+          sendiri tetep array, bukan Pointer.
+        </>
+      );
+    case "index":
+      return (
+        <>
+          <code>
+            {arrayName}[{offset}]
+          </code>{" "}
+          baca elemen <RoleChip role="index">Index {offset}</RoleChip> langsung
+          dari array.
+        </>
+      );
+    case "deref":
+      return (
+        <>
+          <RoleChip role="pointer">
+            {pointer} + {offset}
+          </RoleChip>{" "}
+          maju {offset} elemen ({offset * INT_SIZE_BYTES} byte), bukan {offset}{" "}
+          byte, jadi hasilnya sama kayak{" "}
+          <code>
+            {arrayName}[{offset}]
+          </code>{" "}
+          selama {pointer} di elemen pertama.
+        </>
+      );
+    case "increment":
+      return (
+        <>
+          <code>{pointer}++</code> mindahin{" "}
+          <RoleChip role="pointer">{pointer}</RoleChip> sendiri 1 elemen: isinya
+          jadi <RoleChip role="address">{addressOf(1)}</RoleChip>.
+        </>
+      );
+    case "deref-moved":
+      return (
+        <>
+          {pointer} udah di elemen kedua, jadi{" "}
+          <code>
+            *({pointer} + {offset})
+          </code>{" "}
+          sekarang baca <RoleChip role="index">Index {offset + 1}</RoleChip>,
+          bukan Index {offset} lagi.
+        </>
+      );
+  }
+}
+
+/** What the current line works out: the spacing, the Address, the Value. */
+function Expression({
+  program,
+  now,
+}: {
+  program: PointerArrayProgram;
+  now: PointerArrayStep;
+}) {
+  const { arrayName, pointer, values, offset } = program;
+  const deref = (
+    <code>
+      *({pointer} + {offset})
+    </code>
+  );
+  switch (now.phase) {
+    case "start":
+      return (
+        <ExpressionBox caption={<Muted>Pointer-nya belum ada.</Muted>}>
+          <span className="text-muted-foreground">
+            {pointer} = ?<span className="sr-only"> (belum ada)</span>
+          </span>
+        </ExpressionBox>
+      );
+    case "declare": {
+      const shown = values.slice(0, 3).map((_, i) => addressOf(i));
+      return (
+        <ExpressionBox
+          caption={`Tiap int ${INT_SIZE_BYTES} byte, jadi Address-nya naik ${INT_SIZE_BYTES}.`}
+        >
+          <span className="text-address-ink">
+            {shown.join(", ")}
+            {values.length > shown.length ? ", …" : ""}
+          </span>
+        </ExpressionBox>
+      );
+    }
+    case "point":
+      return (
+        <ExpressionBox
+          caption={
+            <>
+              <code>{arrayName}</code> di sini sama kayak{" "}
+              <code>&amp;{arrayName}[0]</code>.
+            </>
+          }
+        >
+          <span>
+            <span className="text-pointer-ink">{pointer}</span> ={" "}
+            <span className="text-variable-ink">{arrayName}</span>
+          </span>
+          <ExpressionArrow />
+          <span className="sr-only">isinya</span>
+          <span className="text-address-ink">{BASE_ADDRESS}</span>
+        </ExpressionBox>
+      );
+    case "index":
+      return (
+        <ExpressionBox caption="Langsung dari array, lewat Index.">
+          <ElementName name={arrayName} index={offset} />
+          <ExpressionArrow />
+          <span className="sr-only">hasilnya</span>
+          <span className="text-memory-ink">{values[offset]}</span>
+        </ExpressionBox>
+      );
+    case "deref":
+    case "deref-moved":
+      return (
+        <ExpressionBox
+          caption={
+            now.phase === "deref" ? (
+              <>
+                {deref} = <code>{`${arrayName}[${offset}]`}</code>, soalnya{" "}
+                {pointer} masih di elemen pertama.
+              </>
+            ) : (
+              <>
+                Sekarang {deref} = <code>{`${arrayName}[${offset + 1}]`}</code>,
+                bukan <code>{`${arrayName}[${offset}]`}</code>.
+              </>
+            )
+          }
+        >
+          <AddressMath
+            start={addressOf(now.pointerAt ?? 0)}
+            steps={offset}
+            startLabel={`isi ${pointer}`}
+            stepsLabel="k"
+            value={values[now.readIndex ?? 0]}
+          />
+        </ExpressionBox>
+      );
+    case "increment":
+      return (
+        <ExpressionBox
+          caption={
+            <>
+              Sekarang <code>{pointer}</code> nyimpen {addressOf(1)}.
+            </>
+          }
+        >
+          <AddressMath
+            start={BASE_ADDRESS}
+            steps={1}
+            startLabel={`isi ${pointer}`}
+            stepsLabel="elemen"
+          />
+        </ExpressionBox>
+      );
+  }
 }

@@ -22,37 +22,14 @@ type ModuleFrameProps = {
   analogy: ReactNode;
   /** The interactive simulation. */
   children: ReactNode;
-  /**
-   * The new workspace (Module 1 so far): full width, a compact header so the
-   * workspace gets the height, and a quieter link to the next module.
-   */
-  isWorkspace?: boolean;
 };
 
-export function ModuleFrame({
-  number,
-  analogy,
-  children,
-  isWorkspace = false,
-}: ModuleFrameProps) {
+/**
+ * A module page: full width, with a compact header so the workspace gets the
+ * height, and a quiet link to the next module.
+ */
+export function ModuleFrame({ number, analogy, children }: ModuleFrameProps) {
   const { title } = getModule(number);
-
-  if (!isWorkspace) {
-    return (
-      <div className="mx-auto flex w-full max-w-content flex-col gap-6 px-4 py-6 sm:px-6 lg:py-8">
-        <ModuleNav current={number} />
-        <header className="flex max-w-3xl flex-col gap-3">
-          <h1 className="text-display-sm text-balance sm:text-display-md">
-            {title}
-          </h1>
-          <Analogy>{analogy}</Analogy>
-        </header>
-        {children}
-        <Pager current={number} className="border-t pt-6" />
-      </div>
-    );
-  }
-
   return (
     <div className="flex w-full flex-col">
       <div className="flex flex-col gap-3 px-4 py-4 sm:px-6 lg:flex-row lg:items-center lg:gap-8 lg:py-3">
@@ -64,33 +41,21 @@ export function ModuleFrame({
           <h1 className="text-2xl font-semibold tracking-tight text-balance">
             {title}
           </h1>
-          <Analogy isCompact>{analogy}</Analogy>
+          <Analogy>{analogy}</Analogy>
         </header>
       </div>
       {children}
-      <Pager
-        current={number}
-        isNextQuiet
-        className="border-t px-4 py-6 sm:px-6"
-      />
+      <Pager current={number} />
     </div>
   );
 }
 
-function Analogy({
-  isCompact = false,
-  children,
-}: {
-  isCompact?: boolean;
-  children: ReactNode;
-}) {
+function Analogy({ children }: { children: ReactNode }) {
   return (
-    <p
-      className={`flex leading-relaxed text-muted-foreground ${isCompact ? "gap-2 text-sm" : "gap-3 text-base sm:text-lg"}`}
-    >
+    <p className="flex gap-2 text-sm leading-relaxed text-muted-foreground">
       <Lightbulb
         aria-hidden="true"
-        className={`shrink-0 text-accent-foreground ${isCompact ? "mt-0.5 size-4" : "mt-1 size-5"}`}
+        className="mt-0.5 size-4 shrink-0 text-accent-foreground"
       />
       <span>
         <span className="font-semibold text-foreground">Bayangin aja: </span>
@@ -142,24 +107,15 @@ function ModuleNav({
   );
 }
 
-function Pager({
-  current,
-  isNextQuiet = false,
-  className,
-}: {
-  current: ModuleNumber;
-  /** Outline instead of filled, so it never competes with the run's controls. */
-  isNextQuiet?: boolean;
-  className: string;
-}) {
+/** Outline links, so they never compete with the run's controls. */
+function Pager({ current }: { current: ModuleNumber }) {
   const previous = MODULES.find((entry) => entry.number === current - 1);
   const next = MODULES.find((entry) => entry.number === current + 1);
-  const nextLook = isNextQuiet ? buttonClass() : buttonClass("primary");
 
   return (
     <nav
       aria-label="Modul sebelum dan sesudah"
-      className={`flex flex-col gap-3 sm:flex-row sm:justify-between ${className}`}
+      className="flex flex-col gap-3 border-t px-4 py-6 sm:flex-row sm:justify-between sm:px-6"
     >
       {previous ? (
         <Link href={moduleHref(previous.number)} className={buttonClass()}>
@@ -175,13 +131,13 @@ function Pager({
       {next ? (
         <Link
           href={moduleHref(next.number)}
-          className={`${nextLook} whitespace-normal`}
+          className={`${buttonClass()} whitespace-normal`}
         >
           Lanjut ke Modul {next.number}: {next.title}
           <ArrowRight aria-hidden="true" />
         </Link>
       ) : (
-        <Link href="/" className={nextLook}>
+        <Link href="/" className={buttonClass()}>
           Beres! Balik ke awal
           <ArrowRight aria-hidden="true" />
         </Link>

@@ -6,7 +6,8 @@ export type StepperAction =
   | { type: "reset" }
   | { type: "play"; stepCount: number }
   | { type: "pause" }
-  | { type: "tick"; stepCount: number };
+  | { type: "tick"; stepCount: number }
+  | { type: "goto"; step: number };
 
 export const INITIAL_STEPPER_STATE: StepperState = {
   step: 0,
@@ -39,6 +40,10 @@ export function stepperReducer(
       };
     case "pause":
       return { ...state, isPlaying: false };
+    // A jump the run asks for, such as past a scanf the student just
+    // answered. The step may not exist yet in the old run, so no clamp here.
+    case "goto":
+      return { step: Math.max(action.step, 0), isPlaying: false };
     case "tick": {
       const step = Math.min(state.step + 1, action.stepCount - 1);
       return { step, isPlaying: step < action.stepCount - 1 };

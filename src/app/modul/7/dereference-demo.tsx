@@ -1,197 +1,186 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
-
 import { CodePanel } from "@/components/code-panel";
-import { DataEditor, IntField, NameField } from "@/components/data-editor";
 import { VariableDiagram } from "@/components/memory-diagram";
-import { StepControls, useStepper } from "@/components/step-controls";
-import { Narration, RoleChip, Screen, Stage } from "@/components/ui";
-import { type CodeLine } from "@/lib/c-syntax";
-import { BASE_ADDRESS } from "@/lib/memory";
-
-const DEFAULT_NAME = "angka";
-const DEFAULT_POINTER = "ptr";
-const DEFAULT_VALUE = 10;
-const DEFAULT_NEW_VALUE = 20;
-const SNIPPET_NAMES = ["printf"];
-
-/** `*ptr` takes two hops, so reading it gets two steps: Address, then Value. */
-const STEPS = [
-  "declare",
-  "read-address",
-  "read-value",
-  "write",
-  "done",
-] as const;
-type Step = (typeof STEPS)[number];
+import { PointerCompare } from "@/components/pointer-compare";
+import {
+  EditorCard,
+  FieldRow,
+  IntInput,
+  NameInput,
+} from "@/components/program-editor";
+import { Narration, RoleChip } from "@/components/ui";
+import { useSimulation } from "@/components/use-simulation";
+import {
+  Footnote,
+  Muted,
+  Output,
+  PreviewNote,
+  Workspace,
+} from "@/components/workspace";
+import {
+  ADDRESS,
+  type DereferenceProgram,
+  type DereferenceStep,
+  EXAMPLE_PROGRAM,
+  editProgram,
+  programLines,
+  runSnapshots,
+  takenNames,
+} from "@/lib/dereference";
 
 export function DereferenceDemo() {
-  const [name, setName] = useState(DEFAULT_NAME);
-  const [pointer, setPointer] = useState(DEFAULT_POINTER);
-  const [value, setValue] = useState(DEFAULT_VALUE);
-  const [newValue, setNewValue] = useState(DEFAULT_NEW_VALUE);
-  const stepper = useStepper(STEPS.length);
-  const step: Step = STEPS[stepper.step] ?? "declare";
-
-  const deref = `*${pointer}`;
-  const lines: CodeLine[] = [
-    [
-      "int ",
-      { text: name, role: "variable" },
-      " = ",
-      { text: String(value), role: "value" },
-      ";",
-    ],
-    [
-      "int *",
-      { text: pointer, role: "pointer" },
-      " = ",
-      { text: `&${name}`, role: "address" },
-      ";",
-    ],
-    "",
-    ['printf("%d", ', { text: deref, role: "pointer" }, ");"],
-    [
-      { text: deref, role: "pointer" },
-      " = ",
-      { text: String(newValue), role: "value" },
-      ";",
-    ],
-  ];
-  const focus: Record<Step, { line: number | null; part: string | null }> = {
-    declare: { line: 1, part: `int *${pointer}` },
-    "read-address": { line: 3, part: deref },
-    "read-value": { line: 3, part: deref },
-    write: { line: 4, part: `${deref} = ${newValue}` },
-    done: { line: null, part: null },
-  };
-  const hasWritten = step === "write" || step === "done";
-  const isAtTarget = step === "read-value" || step === "write";
-  const printed =
-    stepper.step >= STEPS.indexOf("read-value") ? String(value) : "";
-
-  // Any edit starts the run over, so the code and the diagram always agree.
-  function changeName(next: string) {
-    setName(next);
-    stepper.reset();
-  }
-  function changePointer(next: string) {
-    setPointer(next);
-    stepper.reset();
-  }
-  function changeValue(next: number) {
-    setValue(next);
-    stepper.reset();
-  }
-  function changeNewValue(next: number) {
-    setNewValue(next);
-    stepper.reset();
-  }
-  function restoreExample() {
-    changeName(DEFAULT_NAME);
-    changePointer(DEFAULT_POINTER);
-    changeValue(DEFAULT_VALUE);
-    changeNewValue(DEFAULT_NEW_VALUE);
-  }
+  const sim = useSimulation({
+    example: EXAMPLE_PROGRAM,
+    edit: editProgram,
+    run: runSnapshots,
+  });
+  const { program, now, handleEdit } = sim;
+  const { name, pointer, value, newValue } = program;
+  const isAtTarget =
+    now.phase === "read-value" ||
+    now.phase === "write" ||
+    now.phase === "print-name";
 
   return (
-    <Stage
-      code={
-        <CodePanel
-          lines={lines}
-          activeLine={focus[step].line}
-          activePart={focus[step].part}
-        />
-      }
+    <Workspace
+      stepper={sim.stepper}
       editor={
-        <DataEditor onRestore={restoreExample}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <NameField
+        <EditorCard
+          key={sim.editorKey}
+          title="Atur Variabel"
+          onRestore={() => handleEdit({ kind: "restore" })}
+        >
+          <FieldRow>
+            <NameInput
               label="Nama variabel"
               value={name}
-              taken={[pointer, ...SNIPPET_NAMES]}
-              onCommit={changeName}
+              taken={takenNames(program, "name")}
+              onCommit={(next) =>
+                handleEdit({ kind: "rename", target: "name", name: next })
+              }
             />
-            <NameField
+            <NameInput
               label="Nama Pointer"
               value={pointer}
-              taken={[name, ...SNIPPET_NAMES]}
-              onCommit={changePointer}
+              taken={takenNames(program, "pointer")}
+              onCommit={(next) =>
+                handleEdit({ kind: "rename", target: "pointer", name: next })
+              }
             />
-            <IntField
-              label={`Value ${name}`}
+          </FieldRow>
+          <FieldRow>
+            <IntInput
+              label={`Value awal ${name}`}
               value={value}
-              onCommit={changeValue}
+              onCommit={(next) =>
+                handleEdit({ kind: "value", target: "value", value: next })
+              }
+              className="flex-1 basis-32"
             />
-            <IntField
-              label="Value baru"
+            <IntInput
+              label={`Value baru (*${pointer} = …)`}
               value={newValue}
-              onCommit={changeNewValue}
+              onCommit={(next) =>
+                handleEdit({ kind: "value", target: "newValue", value: next })
+              }
+              className="flex-1 basis-32"
             />
-          </div>
-        </DataEditor>
+          </FieldRow>
+        </EditorCard>
       }
-      hint={
-        <>
-          Tekan Lanjut, terus liat <code>*</code> ngikutin panah Pointer-nya.
-        </>
+      code={
+        <CodePanel
+          lines={programLines(program)}
+          activeLine={now.line}
+          activePart={now.part}
+        />
       }
-      visual={
-        <>
-          <VariableDiagram
-            variables={[
-              {
-                name,
-                value: hasWritten ? newValue : value,
-                address: BASE_ADDRESS,
-                isActive: isAtTarget,
-                isAddressActive: step === "read-address" || isAtTarget,
-                alias: isAtTarget || step === "done" ? deref : undefined,
-              },
-            ]}
-            marks={[
-              {
-                kind: "pointer",
-                column: 0,
-                name: pointer,
-                value: BASE_ADDRESS,
-                isActive: step === "declare" || step === "read-address",
-              },
-            ]}
-          />
-          <Screen
-            output={printed}
-            freshFrom={step === "read-value" ? 0 : null}
-          />
-        </>
-      }
-      controls={<StepControls stepper={stepper} />}
-      narration={
-        <Narration>
-          {describe(step, { name, pointer, value, newValue })}
-        </Narration>
-      }
-    />
+    >
+      <Narration>
+        <Explanation program={program} now={now} />
+      </Narration>
+      <div className="flex flex-col gap-2">
+        <VariableDiagram
+          variables={[
+            {
+              name,
+              value: now.value,
+              address: ADDRESS,
+              isDeclared: now.isDeclared,
+              isActive: isAtTarget,
+              isAddressActive:
+                now.phase === "read-address" || now.phase === "read-value",
+              alias:
+                now.phase === "read-value" || now.phase === "write"
+                  ? `*${pointer}`
+                  : null,
+            },
+          ]}
+          marks={[
+            {
+              kind: "pointer",
+              column: 0,
+              name: pointer,
+              value: ADDRESS,
+              isActive: now.phase === "pointer" || now.phase === "read-address",
+              isHidden: now.pointerValue === null,
+            },
+          ]}
+        />
+        <PreviewNote isShown={!now.isDeclared}>
+          Preview variabel — deklarasi belum dijalankan.
+        </PreviewNote>
+      </div>
+      <PointerCompare
+        pointer={pointer}
+        address={now.pointerValue}
+        value={now.pointerValue === null ? null : now.value}
+        focus={
+          now.phase === "pointer" || now.phase === "read-address"
+            ? "pointer"
+            : now.phase === "read-value" || now.phase === "write"
+              ? "target"
+              : null
+        }
+        caption={<Caption program={program} now={now} />}
+      />
+      <Output pieces={now.terminal} freshFrom={sim.freshFrom} />
+      <Footnote>Address {ADDRESS} cuma simulasi.</Footnote>
+    </Workspace>
   );
 }
 
-function describe(
-  step: Step,
-  {
-    name,
-    pointer,
-    value,
-    newValue,
-  }: { name: string; pointer: string; value: number; newValue: number },
-): ReactNode {
-  switch (step) {
+/** One sentence on why the current line does what it does. */
+function Explanation({
+  program,
+  now,
+}: {
+  program: DereferenceProgram;
+  now: DereferenceStep;
+}) {
+  const { name, pointer } = program;
+  switch (now.phase) {
+    case "start":
+      return (
+        <>
+          Program masuk ke <code>main()</code>. Deklarasi variabel belum
+          dijalankan.
+        </>
+      );
     case "declare":
       return (
         <>
+          Variabel <RoleChip role="variable">{name}</RoleChip> nyimpen{" "}
+          {now.value} di <RoleChip role="address">Address {ADDRESS}</RoleChip>.
+        </>
+      );
+    case "pointer":
+      return (
+        <>
           <strong>* di deklarasi</strong> cuma tanda kalau{" "}
-          <RoleChip role="pointer">{pointer}</RoleChip> itu Pointer, isinya{" "}
-          <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>.
+          <RoleChip role="pointer">{pointer}</RoleChip> itu Pointer; isinya{" "}
+          <RoleChip role="address">Address {ADDRESS}</RoleChip>.
         </>
       );
     case "read-address":
@@ -199,37 +188,69 @@ function describe(
         <>
           <strong>* di depan {pointer}</strong> artinya “buka Address-nya”: cek
           dulu isi <RoleChip role="pointer">{pointer}</RoleChip>, dapet{" "}
-          <RoleChip role="address">{BASE_ADDRESS}</RoleChip>.
+          <RoleChip role="address">{ADDRESS}</RoleChip>.
         </>
       );
     case "read-value":
       return (
         <>
-          Ikutin panahnya ke Address {BASE_ADDRESS}: Value di situ{" "}
-          <RoleChip role="value">{value}</RoleChip>, itu yang ditampilin printf.
+          Buka Address {ADDRESS}: Value-nya{" "}
+          <RoleChip role="value">{now.value}</RoleChip>, itu yang ditampilin
+          printf.
         </>
       );
     case "write":
       return (
         <>
-          <code>
-            *{pointer} = {newValue}
-          </code>{" "}
-          nulis <RoleChip role="value">{newValue}</RoleChip> ke Address{" "}
-          {BASE_ADDRESS}, jadi <RoleChip role="variable">{name}</RoleChip> ikut
-          berubah tanpa{" "}
-          <code>
-            {name} = {newValue}
-          </code>
-          .
+          <code>*{pointer} = …</code> nulis{" "}
+          <RoleChip role="value">{now.value}</RoleChip> ke Address {ADDRESS},
+          jadi <RoleChip role="variable">{name}</RoleChip> berubah; {pointer}{" "}
+          sendiri nggak pindah.
         </>
       );
-    case "done":
+    case "print-name":
       return (
         <>
-          Beres! <RoleChip role="pointer">{pointer}</RoleChip> = Address,{" "}
-          <RoleChip role="pointer">*{pointer}</RoleChip> = Value di Address itu.
+          <RoleChip role="variable">{name}</RoleChip> udah{" "}
+          <RoleChip role="value">{now.value}</RoleChip>, padahal nggak pernah
+          ditulis langsung.
         </>
       );
+  }
+}
+
+/** What the comparison shows on this step, in a few words. */
+function Caption({
+  program,
+  now,
+}: {
+  program: DereferenceProgram;
+  now: DereferenceStep;
+}) {
+  const { pointer } = program;
+  switch (now.phase) {
+    case "start":
+    case "declare":
+      return <Muted>Pointer-nya belum ada.</Muted>;
+    case "pointer":
+      return (
+        <>
+          <code>{pointer}</code> nyimpen Address; <code>*{pointer}</code> itu
+          Value di sana.
+        </>
+      );
+    case "read-address":
+      return <>Hop 1: ambil Address dari {pointer}.</>;
+    case "read-value":
+      return <>Hop 2: ambil Value di Address itu.</>;
+    case "write":
+      return (
+        <>
+          Cuma <code>*{pointer}</code> yang ganti; <code>{pointer}</code> tetep{" "}
+          {ADDRESS}.
+        </>
+      );
+    case "print-name":
+      return <>Satu kotak, dua jalan buat ngaksesnya.</>;
   }
 }

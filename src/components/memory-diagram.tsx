@@ -1,6 +1,5 @@
 "use client";
 
-import { TriangleAlert } from "lucide-react";
 import { type ReactNode, useLayoutEffect, useRef } from "react";
 
 import { addressOf } from "@/lib/memory";
@@ -8,31 +7,48 @@ import { addressOf } from "@/lib/memory";
 /*
  * One diagram for every module: a memory table. Each column is one box of
  * memory; the rows always mean the same thing and carry their role colour:
- * Variable (name), Index, Value (the box), Address. Whatever holds an Address
+ * Variabel (name), Index, Value (the box), Address. Whatever holds an Address
  * (a pointer, or `&angka` handed to scanf) sits in a row underneath, in the
  * same column, with an arrow up to the Address it holds. Nothing is drawn
  * across columns, so labels never overlap at any width; a mark that changes
  * column only slides over on its way.
+ *
+ * Boxes stay neutral. A grey outline marks the box the program is about to
+ * use (the chosen Index, or the element scanf waits for); only the box the
+ * current step reads or writes turns Value green. Before its declaration
+ * runs, a box is a dashed, empty outline: it is not in Memory yet.
+ *
+ * Each diagram is its own size container, so its boxes grow with the pane
+ * it sits in rather than with the screen.
  */
 
 const ROW_HEADER =
-  "pr-2 text-left align-middle text-xs font-semibold whitespace-nowrap sm:pr-3 sm:text-sm";
+  "pr-2 text-left align-middle text-xs font-semibold whitespace-nowrap @md:pr-3 @md:text-sm";
 
 const BOX =
   "flex items-center justify-center border-2 font-mono font-semibold tabular-nums transition-[background-color,border-color,box-shadow] duration-200 ease-interaction";
 
 // Array elements stay compact so five, with their Addresses, fit a 320px
-// phone; a lone variable is the whole picture, so it gets more room.
+// phone, and eight plus the box past the end fit half a 1280px screen; a
+// lone variable is the whole picture, so it gets more room.
 const ELEMENT_SIZE =
-  "min-h-11 min-w-9 px-1 text-lg sm:min-h-14 sm:min-w-14 sm:px-2 sm:text-2xl";
+  "min-h-12 min-w-9 px-1 text-lg @md:min-h-14 @md:min-w-13 @md:text-2xl @lg:min-h-16 @lg:text-3xl";
+// The slot past the end is no element, so it stays a narrow outline.
+const OUTSIDE_SIZE = "min-h-12 w-9 text-lg @md:min-h-14 @lg:min-h-16";
 const VARIABLE_SIZE =
-  "min-h-16 min-w-16 px-2 text-2xl sm:min-h-18 sm:min-w-24 sm:px-3 sm:text-3xl";
+  "min-h-16 min-w-16 px-2 text-2xl @md:min-h-18 @md:min-w-24 @md:px-3 @md:text-3xl";
 
-function boxTone(isActive: boolean): string {
-  return isActive
-    ? "relative z-10 border-memory-ink bg-memory/15 ring-4 ring-memory/25"
-    : "border-memory bg-card";
-}
+/** How a box looks on this step. */
+type BoxState = "preview" | "neutral" | "chosen" | "active";
+
+const BOX_TONE: Record<BoxState, string> = {
+  preview: "border-dashed border-foreground/25",
+  neutral: "border-foreground/20 bg-muted/60",
+  chosen:
+    "relative z-10 border-foreground/20 bg-muted/60 ring-2 ring-foreground/60",
+  active:
+    "relative z-10 border-memory-ink bg-memory/12 text-memory-ink ring-2 ring-memory-ink",
+};
 
 function Unassigned() {
   return (
@@ -67,7 +83,7 @@ function NameLabel({ name, isArray }: { name: string; isArray: boolean }) {
       {isArray ? (
         <span aria-hidden="true" className="h-0.5 flex-1 bg-variable/60" />
       ) : null}
-      <span className="min-w-0 text-center font-mono text-sm font-semibold wrap-anywhere text-variable-ink sm:text-base">
+      <span className="min-w-0 text-center font-mono text-sm font-semibold wrap-anywhere text-variable-ink @md:text-base @lg:text-lg">
         {name}
       </span>
       {isArray ? (
@@ -96,7 +112,7 @@ const MARK_STYLE: Record<
     core: "stroke-address",
   },
   index: {
-    header: "Counter",
+    header: "Loop",
     text: "text-index-ink",
     casing: "stroke-index-ink",
     core: "stroke-index",
@@ -148,11 +164,34 @@ export type Mark = { column: number; isHidden?: boolean } & (
       name: string;
       value: number;
       isActive?: boolean;
-      /** Off while the pointer holds the Address but is not explained yet. */
-      hasArrow?: boolean;
     }
   | { kind: "label"; role: MarkRole; label: string }
 );
+
+const MARK_ROWS: readonly MarkRole[] = ["pointer", "address", "index"];
+
+/** One row per kind of mark, so two marks never share a row's columns. */
+function MarkRows({
+  marks,
+  columnKeys,
+  hangsInwards,
+}: {
+  marks: readonly Mark[];
+  columnKeys: readonly number[];
+  hangsInwards?: boolean;
+}) {
+  return MARK_ROWS.map((role) => {
+    const row = marks.filter((mark) => markRole(mark) === role);
+    return row.length === 0 ? null : (
+      <MarkRow
+        key={role}
+        marks={row}
+        columnKeys={columnKeys}
+        hangsInwards={hangsInwards}
+      />
+    );
+  });
+}
 
 function markRole(mark: Mark): MarkRole {
   return mark.kind === "pointer" ? "pointer" : mark.role;
@@ -186,7 +225,7 @@ function MarkContent({ mark, hang }: { mark: Mark; hang: Hang }) {
   }
   return (
     <>
-      <UpArrow role="pointer" isHidden={mark.hasArrow === false} />
+      <UpArrow role="pointer" />
       {/* `w-0 min-w-full` hangs the box under its column without widening
           it, so the strip above keeps even boxes; at the strip's ends it
           hangs inwards instead of past the edge. */}
@@ -253,8 +292,8 @@ function MarkRow({
   hangsInwards = false,
 }: {
   marks: readonly Mark[];
-  /** What each table column's mark may land on; `null` for a gap. */
-  columnKeys: readonly (number | null)[];
+  /** What each table column's mark may land on. */
+  columnKeys: readonly number[];
   /** Narrow columns: boxes at the ends hang inwards, not past the edge. */
   hangsInwards?: boolean;
 }) {
@@ -270,8 +309,7 @@ function MarkRow({
     <tr ref={rowRef} className={isHidden ? "invisible" : undefined}>
       <RowHeader className={style.text}>{style.header}</RowHeader>
       {columnKeys.map((column, position) => {
-        const mark =
-          column === null ? undefined : marks.find((m) => m.column === column);
+        const mark = marks.find((m) => m.column === column);
         const hang: Hang = !hangsInwards
           ? "center"
           : position === 0
@@ -306,88 +344,68 @@ function AddressText({
   return (
     // Thin padding on phones: four digits must not outgrow a 36px box.
     <span
-      className={`inline-block rounded-md px-0.5 font-mono text-xs text-address-ink tabular-nums transition-shadow duration-200 sm:px-1 sm:text-sm ${isActive ? "font-bold ring-2 ring-address" : ""}`}
+      className={`inline-block rounded-md px-0.5 font-mono text-xs text-address-ink tabular-nums transition-shadow duration-200 @md:px-1 @md:text-sm ${isActive ? "font-bold ring-2 ring-address" : ""}`}
     >
       {address}
     </span>
   );
 }
 
-/** A position past either end of the array, drawn as a dashed box. */
-export type Outside = {
-  index: number;
-  /**
-   * `danger`: something reads it. `quiet`: shown, never touched. `hidden`:
-   * not there yet, but holds its place so the strip never shifts when it
-   * turns `quiet`.
-   */
-  tone: "danger" | "quiet" | "hidden";
-};
+/**
+ * The slot just past the last element, where a loop's `i` stops: `shown` as
+ * a dashed outline nothing touches, or `held` empty so the strip never
+ * shifts when it appears.
+ */
+export type PastEnd = "held" | "shown";
 
-// Phones skip the placeholder: with it, five boxes would overflow 320px.
-const HOLDS_PLACE = "invisible max-sm:hidden";
+// Narrow panes skip the held slot: with it, five boxes would overflow a
+// 320px phone.
+const HOLDS_PLACE = "invisible @max-md:hidden";
 
 type ArrayColumn =
   | { kind: "element"; index: number; value: number | null }
-  | { kind: "gap" }
-  | ({ kind: "outside" } & Outside);
+  | { kind: "past-end"; index: number; look: PastEnd };
 
-/**
- * The array's elements, plus the outside box on the side it falls, with a
- * "…" gap when it is not right next to the array.
- */
 function arrayColumns(
   values: readonly (number | null)[],
-  outside: Outside | null,
+  pastEnd: PastEnd | null,
 ): ArrayColumn[] {
   const elements: ArrayColumn[] = values.map((value, index) => ({
     kind: "element",
     index,
     value,
   }));
-  if (
-    outside === null ||
-    (outside.index >= 0 && outside.index < values.length)
-  ) {
-    return elements;
-  }
-  const at = outside.index;
-  const gap: ArrayColumn[] =
-    at < -1 || at > values.length ? [{ kind: "gap" }] : [];
-  const box: ArrayColumn = { kind: "outside", ...outside };
-  return at < 0 ? [box, ...gap, ...elements] : [...elements, ...gap, box];
+  return pastEnd === null
+    ? elements
+    : [...elements, { kind: "past-end", index: values.length, look: pastEnd }];
 }
 
-// Stable element keys, so a box appearing at the start never shifts focus
-// between cells. The outside box is keyed by its index, so it remounts (and
-// scrolls back into view) whenever it moves.
-function columnKey(column: ArrayColumn): string {
-  return column.kind === "element"
-    ? `e${column.index}`
-    : column.kind === "outside"
-      ? `o${column.index}`
-      : column.kind;
-}
-
-// The outside box is the whole point of the warning, but on a phone or with
-// eight elements it lands past the scroller's edge.
+// On a phone or with eight elements the slot lands past the scroller's
+// edge, yet it is the point of the step that shows it.
 function revealInScroller(node: HTMLElement | null) {
   node?.scrollIntoView({ block: "nearest", inline: "nearest" });
 }
 
 // `relative` keeps the cells' sr-only text inside the scroller; the padding
 // keeps active rings and edge pointer boxes from being clipped by it.
-const SCROLLER = "relative overflow-x-auto px-2 pt-1 pb-2";
+const SCROLLER = "@container relative overflow-x-auto px-2 pt-1 pb-2";
 
 type ArrayDiagramProps = {
   name: string;
   /** `null` marks an element that has not been assigned yet. */
   values: readonly (number | null)[];
+  /** False until the declaration runs: dashed, empty boxes, no Addresses. */
+  isDeclared?: boolean;
+  /** The element this step reads or writes. */
   activeIndex?: number | null;
+  /** The element the program is about to use: a grey outline. */
+  chosenIndex?: number | null;
+  /** The element whose Address this step uses; the read element by default. */
+  addressIndex?: number | null;
   /** Turns each box into a button that selects it. */
   onSelect?: (index: number) => void;
   showAddresses?: boolean;
-  outside?: Outside | null;
+  pastEnd?: PastEnd | null;
   /** Counters or pointers under the elements; `column` is the Index. */
   marks?: readonly Mark[];
 };
@@ -396,18 +414,18 @@ type ArrayDiagramProps = {
 export function ArrayDiagram({
   name,
   values,
+  isDeclared = true,
   activeIndex = null,
+  chosenIndex = null,
+  addressIndex = activeIndex,
   onSelect,
   showAddresses = false,
-  outside = null,
+  pastEnd = null,
   marks = [],
 }: ArrayDiagramProps) {
-  const columns = arrayColumns(values, outside);
+  const columns = arrayColumns(values, pastEnd);
   const last = values.length - 1;
-  const columnIndexes = columns.map((column) =>
-    column.kind === "gap" ? null : column.index,
-  );
-  const firstElement = columns.findIndex((c) => c.kind === "element");
+  const columnIndexes = columns.map((column) => column.index);
 
   return (
     <div className={SCROLLER}>
@@ -419,89 +437,79 @@ export function ArrayDiagram({
         <tbody>
           <tr>
             <RowHeader className="text-variable-ink">Variabel</RowHeader>
-            {columns.map((column, position) =>
-              position === firstElement ? (
-                <td key="name" colSpan={values.length}>
-                  <NameLabel name={name} isArray />
-                </td>
-              ) : column.kind === "element" ? null : (
-                <td key={columnKey(column)} />
-              ),
-            )}
+            <td colSpan={values.length}>
+              <NameLabel name={name} isArray />
+            </td>
+            {pastEnd === null ? null : <td />}
           </tr>
           <tr>
             <RowHeader className="text-index-ink">Index</RowHeader>
             {columns.map((column) => (
               <td
-                key={columnKey(column)}
-                className={`px-1 pb-1 text-center font-mono text-sm ${column.kind === "gap" ? "text-muted-foreground" : "text-index-ink"} ${column.kind !== "gap" && column.index === activeIndex ? "font-bold" : ""} ${column.kind === "outside" && column.tone === "hidden" ? HOLDS_PLACE : ""}`}
+                key={column.index}
+                className={`px-1 pb-1 text-center font-mono text-sm text-index-ink ${column.index === activeIndex ? "font-bold" : ""} ${column.kind === "past-end" && column.look === "held" ? HOLDS_PLACE : ""}`}
               >
-                {column.kind === "gap" ? "…" : `[${column.index}]`}
+                [{column.index}]
               </td>
             ))}
           </tr>
           <tr>
             <RowHeader className="text-memory-ink">Value</RowHeader>
             {columns.map((column) => {
-              if (column.kind === "gap") {
+              if (column.kind === "past-end") {
                 return (
                   <td
-                    key={columnKey(column)}
-                    className="px-2 text-center text-muted-foreground"
+                    key={column.index}
+                    // A gap on the array's side only: enough to read as
+                    // outside it, without costing a column of room.
+                    className={`pl-2 ${column.look === "held" ? HOLDS_PLACE : ""}`}
                   >
-                    …
-                  </td>
-                );
-              }
-              if (column.kind === "outside") {
-                return (
-                  <td
-                    key={columnKey(column)}
-                    className={`px-2 ${column.tone === "hidden" ? HOLDS_PLACE : ""}`}
-                  >
-                    {column.tone === "danger" ? (
+                    {column.look === "shown" ? (
                       <span
                         ref={revealInScroller}
-                        className={`${BOX} ${ELEMENT_SIZE} gap-0.5 rounded-xl border-dashed border-destructive text-destructive`}
-                      >
-                        <TriangleAlert aria-hidden="true" className="size-4" />?
-                        <span className="sr-only"> (di luar array)</span>
-                      </span>
-                    ) : column.tone === "quiet" ? (
-                      <span
-                        ref={revealInScroller}
-                        className={`${BOX} ${ELEMENT_SIZE} rounded-xl border-dashed border-muted-foreground/50`}
+                        className={`${BOX} ${OUTSIDE_SIZE} rounded-xl border-dashed border-muted-foreground/50`}
                       >
                         <span className="sr-only">
                           di luar array, nggak disentuh
                         </span>
                       </span>
                     ) : (
-                      // Same size as the quiet box, so its place is held.
-                      <span className={`${BOX} ${ELEMENT_SIZE}`} />
+                      // Same size as the shown slot, so its place is held.
+                      <span className={`${BOX} ${OUTSIDE_SIZE}`} />
                     )}
                   </td>
                 );
               }
               const { index, value } = column;
-              const isActive = index === activeIndex;
+              const state: BoxState = !isDeclared
+                ? "preview"
+                : index === activeIndex
+                  ? "active"
+                  : index === chosenIndex
+                    ? "chosen"
+                    : "neutral";
               // Neighbours share one border, so the strip reads as one block.
               const shape = `${index === 0 ? "rounded-l-xl" : "border-l-0"} ${index === last ? "rounded-r-xl" : ""}`;
-              const look = `${BOX} ${ELEMENT_SIZE} ${shape} ${boxTone(isActive)}`;
+              const look = `${BOX} ${ELEMENT_SIZE} ${shape} ${BOX_TONE[state]}`;
+              const content = isDeclared ? (
+                (value ?? <Unassigned />)
+              ) : (
+                <span className="sr-only">belum ada</span>
+              );
               return (
-                <td key={columnKey(column)}>
+                <td key={column.index}>
                   {onSelect ? (
                     <button
                       type="button"
-                      aria-pressed={isActive}
-                      aria-label={`${name}[${index}], Value ${value ?? "belum diisi"}`}
+                      aria-pressed={index === chosenIndex}
+                      aria-label={`${name}[${index}], Value ${isDeclared ? (value ?? "belum diisi") : "belum ada"}`}
                       onClick={() => onSelect(index)}
-                      className={`${look} w-full cursor-pointer hover:bg-memory/10`}
+                      className={`${look} w-full cursor-pointer hover:bg-muted`}
                     >
-                      {value ?? <Unassigned />}
+                      {isDeclared ? content : null}
                     </button>
                   ) : (
-                    <span className={look}>{value ?? <Unassigned />}</span>
+                    <span className={look}>{content}</span>
                   )}
                 </td>
               );
@@ -512,20 +520,20 @@ export function ArrayDiagram({
               <RowHeader className="text-address-ink">Address</RowHeader>
               {columns.map((column) => (
                 <td
-                  key={columnKey(column)}
-                  className="pt-1.5 text-center sm:px-0.5"
+                  key={column.index}
+                  className={`pt-1.5 text-center @md:px-0.5 ${isDeclared ? "" : "invisible"}`}
                 >
                   {column.kind === "element" ? (
                     <AddressText
                       address={addressOf(column.index)}
-                      isActive={column.index === activeIndex}
+                      isActive={column.index === addressIndex}
                     />
                   ) : null}
                 </td>
               ))}
             </tr>
           ) : null}
-          <MarkRow marks={marks} columnKeys={columnIndexes} hangsInwards />
+          <MarkRows marks={marks} columnKeys={columnIndexes} hangsInwards />
         </tbody>
       </table>
     </div>
@@ -537,29 +545,33 @@ export type DiagramVariable = {
   /** `null` while nothing has been stored yet. */
   value: number | null;
   address: number;
+  /** False until its declaration runs: a dashed, empty box, no Address. */
+  isDeclared?: boolean;
+  /** The program is about to write here, such as a waiting scanf. */
+  isChosen?: boolean;
   isActive?: boolean;
   /** Rings the Address, e.g. when a pointer holds that same number. */
   isAddressActive?: boolean;
-  /** Another name for this box right now, such as `*ptr`. */
-  alias?: string;
+  /**
+   * Another name for this box right now, such as `*ptr`, under its own name.
+   * `null` keeps that line empty, so the names never jump when it shows.
+   */
+  alias?: string | null;
 };
 
 /** Separate variables: each one its own box, with a gap between them. */
 export function VariableDiagram({
   variables,
   marks = [],
-  onSelect,
 }: {
   variables: readonly DiagramVariable[];
   /** Pointers or `&x` arguments under the variables; `column` is the position. */
   marks?: readonly Mark[];
-  /** Turns each box into a button, e.g. to point a Pointer at it. */
-  onSelect?: (position: number) => void;
 }) {
   const columnKeys = variables.map((_, position) => position);
   return (
     <div className={SCROLLER}>
-      <table className="mx-auto border-separate border-spacing-x-3 border-spacing-y-0 sm:border-spacing-x-6">
+      <table className="mx-auto border-separate border-spacing-x-3 border-spacing-y-0 @md:border-spacing-x-6">
         <caption className="sr-only">
           Variabel di Memory: nama, Value, dan Address
         </caption>
@@ -567,44 +579,44 @@ export function VariableDiagram({
           <tr>
             <RowHeader className="text-variable-ink">Variabel</RowHeader>
             {variables.map((variable) => (
-              <td key={variable.name}>
+              <td key={variable.name} className="align-bottom">
                 <NameLabel name={variable.name} isArray={false} />
+                {variable.alias === undefined ? null : (
+                  // `w-0 min-w-full` wraps a long alias inside the column
+                  // instead of widening it.
+                  <div className="flex w-0 min-w-full justify-center pb-1.5">
+                    <span
+                      className={`rounded-md bg-card px-1.5 text-center font-mono text-xs leading-5 font-semibold wrap-anywhere text-pointer-ink ring-2 ring-pointer ${variable.alias === null ? "invisible" : ""}`}
+                    >
+                      {variable.alias ?? "*"}
+                    </span>
+                  </div>
+                )}
               </td>
             ))}
           </tr>
           <tr>
             <RowHeader className="text-memory-ink">Value</RowHeader>
-            {variables.map((variable, position) => {
-              const isActive = variable.isActive ?? false;
-              const look = `${BOX} ${VARIABLE_SIZE} relative rounded-xl ${boxTone(isActive)}`;
-              const content = (
-                <>
-                  {variable.value ?? <Unassigned />}
-                  {variable.alias ? (
-                    // Beside the box, in the column's spacing: clear of the
-                    // name above and the Address below, and showing it never
-                    // moves anything else.
-                    <span className="absolute top-1/2 left-full ml-2 w-max max-w-28 -translate-y-1/2 rounded-md bg-card px-1.5 font-mono text-xs leading-5 font-semibold wrap-anywhere text-pointer-ink ring-2 ring-pointer">
-                      {variable.alias}
-                    </span>
-                  ) : null}
-                </>
-              );
+            {variables.map((variable) => {
+              const isDeclared = variable.isDeclared ?? true;
+              const state: BoxState = !isDeclared
+                ? "preview"
+                : variable.isActive
+                  ? "active"
+                  : variable.isChosen
+                    ? "chosen"
+                    : "neutral";
               return (
                 <td key={variable.name}>
-                  {onSelect ? (
-                    <button
-                      type="button"
-                      aria-pressed={isActive}
-                      aria-label={`${variable.name}, Value ${variable.value ?? "belum diisi"}`}
-                      onClick={() => onSelect(position)}
-                      className={`${look} cursor-pointer hover:bg-memory/10`}
-                    >
-                      {content}
-                    </button>
-                  ) : (
-                    <span className={look}>{content}</span>
-                  )}
+                  <span
+                    className={`${BOX} ${VARIABLE_SIZE} rounded-xl ${BOX_TONE[state]}`}
+                  >
+                    {isDeclared ? (
+                      (variable.value ?? <Unassigned />)
+                    ) : (
+                      <span className="sr-only">belum ada</span>
+                    )}
+                  </span>
                 </td>
               );
             })}
@@ -612,7 +624,10 @@ export function VariableDiagram({
           <tr>
             <RowHeader className="text-address-ink">Address</RowHeader>
             {variables.map((variable) => (
-              <td key={variable.name} className="pt-1.5 text-center">
+              <td
+                key={variable.name}
+                className={`pt-1.5 text-center ${(variable.isDeclared ?? true) ? "" : "invisible"}`}
+              >
                 <AddressText
                   address={variable.address}
                   isActive={variable.isAddressActive ?? false}
@@ -620,7 +635,7 @@ export function VariableDiagram({
               </td>
             ))}
           </tr>
-          <MarkRow marks={marks} columnKeys={columnKeys} />
+          <MarkRows marks={marks} columnKeys={columnKeys} />
         </tbody>
       </table>
     </div>

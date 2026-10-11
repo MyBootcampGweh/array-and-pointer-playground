@@ -1,169 +1,282 @@
 "use client";
 
-import { useState } from "react";
-
 import { CodePanel } from "@/components/code-panel";
-import { DataEditor, IntField, NameField } from "@/components/data-editor";
 import { VariableDiagram } from "@/components/memory-diagram";
-import { ExpressionBar, Narration, RoleChip, Stage } from "@/components/ui";
-import { type CodeLine } from "@/lib/c-syntax";
-import { addressOf } from "@/lib/memory";
+import { PointerCompare } from "@/components/pointer-compare";
+import {
+  EditorCard,
+  FieldRow,
+  IntInput,
+  NameInput,
+} from "@/components/program-editor";
+import { Narration, RoleChip } from "@/components/ui";
+import { useSimulation } from "@/components/use-simulation";
+import {
+  Footnote,
+  Muted,
+  Output,
+  PreviewNote,
+  Workspace,
+} from "@/components/workspace";
+import {
+  ADDRESSES,
+  EXAMPLE_PROGRAM,
+  type NameKey,
+  type PointerTargetProgram,
+  type PointerTargetStep,
+  type Target,
+  type ValueKey,
+  editProgram,
+  programLines,
+  runSnapshots,
+  takenNames,
+} from "@/lib/pointer-target";
 
-type Target = "a" | "b";
 const TARGETS: readonly Target[] = ["a", "b"];
 
-const DEFAULT_NAMES = { a: "angkaA", b: "angkaB", pointer: "ptr" };
-const DEFAULT_VALUES: Record<Target, number> = { a: 10, b: 25 };
-
-/** Two ints declared one after the other, 4 bytes apart (illustrative). */
-const ADDRESSES: Record<Target, number> = { a: addressOf(0), b: addressOf(1) };
-
 export function PointerTargetDemo() {
-  const [names, setNames] = useState(DEFAULT_NAMES);
-  const [values, setValues] = useState(DEFAULT_VALUES);
-  const [target, setTarget] = useState<Target>("a");
-
-  const { pointer } = names;
-  const lines: CodeLine[] = [
-    ...TARGETS.map((key): CodeLine => [
-      "int ",
-      { text: names[key], role: "variable" },
-      " = ",
-      { text: String(values[key]), role: "value" },
-      ";",
-    ]),
-    [
-      "int *",
-      { text: pointer, role: "pointer" },
-      " = ",
-      { text: `&${names.a}`, role: "address" },
-      ";",
-    ],
-    // Redirecting adds one line; pointing back at A is the original program.
-    ...(target === "b"
-      ? [
-          [
-            { text: pointer, role: "pointer" },
-            " = ",
-            { text: `&${names.b}`, role: "address" },
-            ";",
-          ] as const,
-        ]
-      : []),
-  ];
-
-  function rename(key: keyof typeof DEFAULT_NAMES, next: string) {
-    setNames((current) => ({ ...current, [key]: next }));
-  }
-  function restoreExample() {
-    setNames(DEFAULT_NAMES);
-    setValues(DEFAULT_VALUES);
-    setTarget("a");
-  }
+  const sim = useSimulation({
+    example: EXAMPLE_PROGRAM,
+    edit: editProgram,
+    run: runSnapshots,
+  });
+  const { program, now, handleEdit } = sim;
+  const { pointer } = program;
+  const names: Record<Target, string> = { a: program.nameA, b: program.nameB };
+  const rename = (target: NameKey) => (name: string) =>
+    handleEdit({ kind: "rename", target, name });
+  const revalue = (target: ValueKey) => (value: number) =>
+    handleEdit({ kind: "value", target, value });
 
   return (
-    <Stage
-      code={<CodePanel lines={lines} activeLine={lines.length - 1} />}
+    <Workspace
+      stepper={sim.stepper}
       editor={
-        <DataEditor onRestore={restoreExample}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            {TARGETS.map((key) => (
-              <NameField
-                key={key}
-                label={`Nama variabel ${key.toUpperCase()}`}
-                value={names[key]}
-                taken={[names[key === "a" ? "b" : "a"], pointer]}
-                onCommit={(next) => rename(key, next)}
-              />
-            ))}
-            {TARGETS.map((key) => (
-              <IntField
-                key={key}
-                label={`Value ${names[key]}`}
-                value={values[key]}
-                onCommit={(next) =>
-                  setValues((current) => ({ ...current, [key]: next }))
-                }
-              />
-            ))}
-            <NameField
+        <EditorCard
+          key={sim.editorKey}
+          title="Atur Variabel"
+          onRestore={() => handleEdit({ kind: "restore" })}
+        >
+          <FieldRow>
+            <NameInput
+              label="Nama variabel A"
+              value={program.nameA}
+              taken={takenNames(program, "nameA")}
+              onCommit={rename("nameA")}
+              className="flex-1 basis-32"
+            />
+            <IntInput
+              label={`Value ${program.nameA}`}
+              value={program.valueA}
+              onCommit={revalue("valueA")}
+            />
+          </FieldRow>
+          <FieldRow>
+            <NameInput
+              label="Nama variabel B"
+              value={program.nameB}
+              taken={takenNames(program, "nameB")}
+              onCommit={rename("nameB")}
+              className="flex-1 basis-32"
+            />
+            <IntInput
+              label={`Value ${program.nameB}`}
+              value={program.valueB}
+              onCommit={revalue("valueB")}
+            />
+          </FieldRow>
+          <FieldRow>
+            <NameInput
               label="Nama Pointer"
               value={pointer}
-              taken={[names.a, names.b]}
-              onCommit={(next) => rename("pointer", next)}
+              taken={takenNames(program, "pointer")}
+              onCommit={rename("pointer")}
+              className="flex-1 basis-32"
             />
-          </div>
-        </DataEditor>
+            <IntInput
+              label={`Value baru (*${pointer} = …)`}
+              value={program.newValue}
+              onCommit={revalue("newValue")}
+            />
+          </FieldRow>
+        </EditorCard>
       }
-      hint="Pilih target Pointer-nya di baris kode, atau klik kotaknya."
-      visual={
-        <>
-          <VariableDiagram
-            variables={TARGETS.map((key) => ({
-              name: names[key],
-              value: values[key],
-              address: ADDRESSES[key],
-              isActive: key === target,
-              isAddressActive: key === target,
-            }))}
-            onSelect={(position) => setTarget(TARGETS[position] ?? target)}
-            marks={[
-              {
-                kind: "pointer",
-                column: TARGETS.indexOf(target),
-                name: pointer,
-                value: ADDRESSES[target],
-              },
-            ]}
-          />
-          <ExpressionBar>
-            <span className="min-w-0 wrap-anywhere text-pointer-ink">
-              {pointer}
-            </span>
-            <span>=</span>
-            <span className="text-address-ink">&amp;</span>
-            <span
-              role="group"
-              aria-label={`Target ${pointer}`}
-              className="flex min-w-0 flex-wrap gap-1 rounded-xl bg-card p-1 ring-1 ring-border"
-            >
-              {TARGETS.map((key) => (
-                <button
-                  key={key}
-                  type="button"
-                  aria-pressed={key === target}
-                  onClick={() => setTarget(key)}
-                  className={`min-h-11 min-w-0 rounded-lg px-3 wrap-anywhere transition-colors duration-200 ease-interaction ${key === target ? "bg-variable/12 text-variable-ink ring-2 ring-variable" : "text-muted-foreground hover:bg-muted"}`}
-                >
-                  {names[key]}
-                </button>
-              ))}
-            </span>
-            <span>;</span>
-          </ExpressionBar>
-        </>
+      code={
+        <CodePanel
+          lines={programLines(program)}
+          activeLine={now.line}
+          activePart={now.part}
+        />
       }
-      narration={
-        <Narration>
-          {target === "a" ? (
-            <>
-              <RoleChip role="pointer">{pointer}</RoleChip> nyimpen{" "}
-              <RoleChip role="address">Address {ADDRESSES.a}</RoleChip>,
-              Address-nya {names.a}, makanya panahnya ke situ.
-            </>
-          ) : (
-            <>
-              <code>
-                {pointer} = &amp;{names.b}
-              </code>{" "}
-              (tanpa *) cuma ganti isi{" "}
-              <RoleChip role="pointer">{pointer}</RoleChip> jadi{" "}
-              <RoleChip role="address">{ADDRESSES.b}</RoleChip>; Value {names.a}{" "}
-              tetep {values.a} dan {names.b} tetep {values.b}.
-            </>
-          )}
-        </Narration>
-      }
-    />
+    >
+      <Narration>
+        <Explanation program={program} now={now} />
+      </Narration>
+      <div className="flex flex-col gap-2">
+        <VariableDiagram
+          variables={TARGETS.map((key, position) => ({
+            name: names[key],
+            value: now.values[key],
+            address: ADDRESSES[key],
+            isDeclared: position < now.declared,
+            isActive:
+              now.phase === "print" ||
+              (now.phase === "write" && key === now.target),
+            isAddressActive:
+              key === now.target &&
+              (now.phase === "point" || now.phase === "redirect"),
+            alias:
+              now.phase === "write" && key === now.target
+                ? `*${pointer}`
+                : null,
+          }))}
+          marks={[
+            {
+              kind: "pointer",
+              column: now.target === "b" ? 1 : 0,
+              name: pointer,
+              value: ADDRESSES[now.target ?? "a"],
+              isActive: now.phase === "point" || now.phase === "redirect",
+              isHidden: now.target === null,
+            },
+          ]}
+        />
+        <PreviewNote isShown={now.declared === 0}>
+          Preview variabel — deklarasi belum dijalankan.
+        </PreviewNote>
+      </div>
+      <PointerCompare
+        pointer={pointer}
+        address={now.target === null ? null : ADDRESSES[now.target]}
+        value={now.target === null ? null : now.values[now.target]}
+        focus={
+          now.phase === "point" || now.phase === "redirect"
+            ? "pointer"
+            : now.phase === "write"
+              ? "target"
+              : null
+        }
+        caption={<Caption program={program} now={now} />}
+      />
+      <Output pieces={now.terminal} freshFrom={sim.freshFrom} />
+      <Footnote>
+        Address {ADDRESSES.a} dan {ADDRESSES.b} cuma simulasi.
+      </Footnote>
+    </Workspace>
   );
+}
+
+/** One sentence on why the current line does what it does. */
+function Explanation({
+  program,
+  now,
+}: {
+  program: PointerTargetProgram;
+  now: PointerTargetStep;
+}) {
+  const { nameA, nameB, pointer } = program;
+  switch (now.phase) {
+    case "start":
+      return (
+        <>
+          Program masuk ke <code>main()</code>. Deklarasi variabel belum
+          dijalankan.
+        </>
+      );
+    case "declare-a":
+      return (
+        <>
+          Variabel <RoleChip role="variable">{nameA}</RoleChip> nyimpen{" "}
+          {now.values.a} di{" "}
+          <RoleChip role="address">Address {ADDRESSES.a}</RoleChip>.
+        </>
+      );
+    case "declare-b":
+      return (
+        <>
+          <RoleChip role="variable">{nameB}</RoleChip> dapet kotak sendiri di{" "}
+          <RoleChip role="address">Address {ADDRESSES.b}</RoleChip>, jadi
+          Address-nya beda.
+        </>
+      );
+    case "point":
+      return (
+        <>
+          <RoleChip role="pointer">{pointer}</RoleChip> nyimpen{" "}
+          <RoleChip role="address">Address {ADDRESSES.a}</RoleChip>, jadi nunjuk
+          ke {nameA}.
+        </>
+      );
+    case "redirect":
+      return (
+        <>
+          <code>
+            {pointer} = &amp;{nameB}
+          </code>{" "}
+          (tanpa *) cuma ganti isi <RoleChip role="pointer">{pointer}</RoleChip>{" "}
+          jadi <RoleChip role="address">{ADDRESSES.b}</RoleChip>; Value dua
+          variabelnya tetep.
+        </>
+      );
+    case "write":
+      return (
+        <>
+          <code>*{pointer} = …</code> (pakai *) nulis{" "}
+          <RoleChip role="value">{now.values.b}</RoleChip> ke yang ditunjuk,
+          yaitu <RoleChip role="variable">{nameB}</RoleChip>; {pointer} nggak
+          pindah.
+        </>
+      );
+    case "print":
+      return (
+        <>
+          <RoleChip role="variable">{nameA}</RoleChip> tetep {now.values.a};
+          cuma {nameB} yang berubah, lewat {pointer}.
+        </>
+      );
+  }
+}
+
+/** What the comparison shows on this step, in a few words. */
+function Caption({
+  program,
+  now,
+}: {
+  program: PointerTargetProgram;
+  now: PointerTargetStep;
+}) {
+  const { pointer } = program;
+  switch (now.phase) {
+    case "start":
+    case "declare-a":
+    case "declare-b":
+      return <Muted>Pointer-nya belum ada.</Muted>;
+    case "point":
+      return (
+        <>
+          <code>{pointer}</code> nunjuk ke kotak di {ADDRESSES.a}.
+        </>
+      );
+    case "redirect":
+      return (
+        <>
+          Isi <code>{pointer}</code> ganti {ADDRESSES.a} → {ADDRESSES.b}, jadi{" "}
+          <code>*{pointer}</code> sekarang kotak lain.
+        </>
+      );
+    case "write":
+      return (
+        <>
+          Cuma <code>*{pointer}</code> yang ganti; <code>{pointer}</code> tetep{" "}
+          {ADDRESSES.b}.
+        </>
+      );
+    case "print":
+      return (
+        <>
+          <code>{pointer}</code> = Address, <code>*{pointer}</code> = Value di
+          Address itu.
+        </>
+      );
+  }
 }

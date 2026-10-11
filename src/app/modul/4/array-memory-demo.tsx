@@ -5,138 +5,274 @@ import { useState } from "react";
 
 import { AddressMath } from "@/components/address-math";
 import { CodePanel } from "@/components/code-panel";
-import {
-  ArrayValuesField,
-  DataEditor,
-  NameField,
-} from "@/components/data-editor";
 import { ArrayDiagram } from "@/components/memory-diagram";
-import { Button, Narration, RoleChip, Stage } from "@/components/ui";
-import { type CodeLine, arrayDeclaration } from "@/lib/c-syntax";
+import {
+  DraftInput,
+  EditorCard,
+  EditorNotice,
+  FieldRow,
+  LengthSelect,
+  NameInput,
+  ValuesRow,
+} from "@/components/program-editor";
+import { Button, Narration, RoleChip } from "@/components/ui";
+import { useSimulation } from "@/components/use-simulation";
+import {
+  ElementName,
+  ExpressionArrow,
+  ExpressionBox,
+  Footnote,
+  Hint,
+  Muted,
+  Output,
+  PreviewNote,
+  Workspace,
+} from "@/components/workspace";
+import { parseIndex } from "@/lib/array-indexing";
+import {
+  type ArrayMemoryProgram,
+  type ArrayMemoryStep,
+  EXAMPLE_PROGRAM,
+  TAKEN_NAMES,
+  editProgram,
+  programLines,
+  runSnapshots,
+} from "@/lib/array-memory";
 import { BASE_ADDRESS, INT_SIZE_BYTES, addressOf } from "@/lib/memory";
 
-const DEFAULT_NAME = "nilai";
-const DEFAULT_VALUES: readonly number[] = [10, 20, 30, 40, 50];
-
 export function ArrayMemoryDemo() {
-  const [name, setName] = useState(DEFAULT_NAME);
-  const [values, setValues] = useState(DEFAULT_VALUES);
-  // Nothing is picked at first: the strip alone comes first, the arithmetic
-  // only once the student asks for it by clicking a box.
-  const [picked, setPicked] = useState<number | null>(null);
+  const sim = useSimulation({
+    example: EXAMPLE_PROGRAM,
+    edit: editProgram,
+    run: runSnapshots,
+  });
+  const { program, now, handleEdit } = sim;
+  const { arrayName, values, index } = program;
+  // How the picture is shown, not part of the run: stepping keeps it.
   const [showsBytes, setShowsBytes] = useState(false);
 
-  const access = picked === null ? null : `${name}[${picked}]`;
-  const lines: CodeLine[] = [
-    arrayDeclaration(name, values.length, values),
-    ...(picked === null
-      ? []
-      : [
-          "",
-          [
-            'printf("%d", ',
-            { text: name, role: "variable" },
-            "[",
-            { text: String(picked), role: "index" },
-            "]);  // Address ",
-            { text: String(addressOf(picked)), role: "address" },
-          ] as const,
-        ]),
-  ];
-
-  // Removing the picked element moves the pick to the new last element.
-  function changeValues(next: readonly number[]) {
-    setValues(next);
-    setPicked((current) =>
-      current === null ? null : Math.min(current, next.length - 1),
-    );
-  }
-  function restoreExample() {
-    setName(DEFAULT_NAME);
-    setValues(DEFAULT_VALUES);
-    setPicked(null);
-    setShowsBytes(false);
-  }
-
   return (
-    <Stage
-      code={<CodePanel lines={lines} activeLine={picked === null ? null : 2} />}
+    <Workspace
+      stepper={sim.stepper}
       editor={
-        <DataEditor onRestore={restoreExample}>
-          <NameField
-            label="Nama array"
-            value={name}
-            taken={["printf"]}
-            onCommit={setName}
-          />
-          <ArrayValuesField
-            name={name}
+        <EditorCard
+          key={sim.editorKey}
+          title="Atur Array"
+          onRestore={() => handleEdit({ kind: "restore" })}
+        >
+          <FieldRow>
+            <NameInput
+              label="Nama array"
+              value={arrayName}
+              taken={TAKEN_NAMES}
+              onCommit={(name) => handleEdit({ kind: "rename", name })}
+            />
+            <LengthSelect
+              value={values.length}
+              onChange={(length) => handleEdit({ kind: "resize", length })}
+            />
+            <DraftInput
+              label="Index yang diakses"
+              value={index}
+              format={String}
+              parse={(raw) => parseIndex(raw, values.length)}
+              onCommit={(next) => handleEdit({ kind: "select", index: next })}
+              inputMode="numeric"
+              className="w-32"
+              inputClassName="text-index-ink"
+            />
+          </FieldRow>
+          <EditorNotice notice={sim.notice} />
+          <ValuesRow
+            arrayName={arrayName}
             values={values}
-            onChange={changeValues}
+            onCommit={(position, value) =>
+              handleEdit({ kind: "value", index: position, value })
+            }
           />
-        </DataEditor>
+        </EditorCard>
       }
-      hint="Klik salah satu kotak buat liat Address-nya dihitung."
-      visual={
-        <>
-          <ArrayDiagram
-            name={name}
-            values={values}
-            activeIndex={picked}
-            onSelect={setPicked}
-            showAddresses
-          />
-          {picked === null || access === null ? null : (
-            <div className="flex flex-col items-center gap-3">
-              <AddressMath
-                index={picked}
-                baseCaption="Address awal"
-                indexCaption="Index"
-              />
-              <Button
-                variant="ghost"
-                aria-expanded={showsBytes}
-                onClick={() => setShowsBytes((shown) => !shown)}
-              >
-                <ChevronDown
-                  aria-hidden="true"
-                  className={`transition-transform ${showsBytes ? "rotate-180" : ""}`}
-                />
-                {showsBytes ? "Tutup rincian byte" : "Liat 4 byte-nya"}
-              </Button>
-              {showsBytes ? (
-                <ByteStrip access={access} address={addressOf(picked)} />
-              ) : null}
-            </div>
-          )}
-        </>
+      code={
+        <CodePanel
+          lines={programLines(program, now.result !== null)}
+          activeLine={now.line}
+          activePart={now.part}
+        />
       }
-      footnote={
-        <>
-          Address aslinya heksadesimal (kayak 0x7ffd5c2c) dan beda tiap program
-          jalan. Di sini dibikin 1000-an biar gampang dihitung.
-        </>
-      }
-      narration={
-        <Narration>
-          {picked === null ? (
-            <>
-              Tiap kotak punya Address sendiri: mulai dari{" "}
-              <RoleChip role="address">{BASE_ADDRESS}</RoleChip>, terus nambah{" "}
-              {INT_SIZE_BYTES}, soalnya 1 int = {INT_SIZE_BYTES} byte.
-            </>
-          ) : (
-            <>
-              <code>{access}</code>:{" "}
-              <RoleChip role="index">Index {picked}</RoleChip> itu posisinya,{" "}
-              <RoleChip role="address">Address {addressOf(picked)}</RoleChip>{" "}
-              itu lokasinya di Memory. Beda, ya!
-            </>
-          )}
-        </Narration>
-      }
-    />
+    >
+      <Narration>
+        <Explanation program={program} now={now} />
+      </Narration>
+      <div className="flex flex-col gap-2">
+        <Hint>Klik kotaknya buat ganti Index.</Hint>
+        <ArrayDiagram
+          name={arrayName}
+          values={values}
+          isDeclared={now.isDeclared}
+          chosenIndex={index}
+          activeIndex={now.result === null ? null : index}
+          addressIndex={now.address === null ? null : index}
+          onSelect={(next) => handleEdit({ kind: "select", index: next })}
+          showAddresses
+        />
+        <PreviewNote isShown={!now.isDeclared}>
+          Preview array — deklarasi belum dijalankan.
+        </PreviewNote>
+      </div>
+      <Expression program={program} now={now} />
+      {now.address === null ? null : (
+        <div className="flex flex-col items-center gap-3">
+          <Button
+            variant="ghost"
+            aria-expanded={showsBytes}
+            onClick={() => setShowsBytes((shown) => !shown)}
+          >
+            <ChevronDown
+              aria-hidden="true"
+              className={`transition-transform ${showsBytes ? "rotate-180" : ""}`}
+            />
+            {showsBytes ? "Tutup rincian byte" : "Liat 4 byte-nya"}
+          </Button>
+          {showsBytes ? (
+            <ByteStrip
+              access={`${arrayName}[${index}]`}
+              address={now.address}
+            />
+          ) : null}
+        </div>
+      )}
+      <Output pieces={now.terminal} freshFrom={sim.freshFrom} />
+      <Footnote>
+        Address di sini simulasi: mulai {BASE_ADDRESS}, tiap int{" "}
+        {INT_SIZE_BYTES} byte. Address asli biasanya heksadesimal dan beda tiap
+        program jalan.
+      </Footnote>
+    </Workspace>
   );
+}
+
+/** One sentence on why the current line does what it does. */
+function Explanation({
+  program,
+  now,
+}: {
+  program: ArrayMemoryProgram;
+  now: ArrayMemoryStep;
+}) {
+  const { arrayName, index } = program;
+  switch (now.phase) {
+    case "start":
+      return (
+        <>
+          Program masuk ke <code>main()</code>. Deklarasi array belum
+          dijalankan.
+        </>
+      );
+    case "declare":
+      return (
+        <>
+          Elemen array berjejer nempel di Memory, mulai dari{" "}
+          <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>.
+        </>
+      );
+    case "locate":
+      return (
+        <>
+          <RoleChip role="index">Index {index}</RoleChip> itu posisi, bukan
+          lokasi. Buat ambil{" "}
+          <code>
+            {arrayName}[{index}]
+          </code>
+          , Address-nya dihitung dulu dari Address awal.
+        </>
+      );
+    case "print":
+      return (
+        <>
+          Value di <RoleChip role="address">Address {now.address}</RoleChip>{" "}
+          dibaca, terus printf nampilin ke Output.
+        </>
+      );
+  }
+}
+
+/** What the current line works out: the spacing, the Address, the Value. */
+function Expression({
+  program,
+  now,
+}: {
+  program: ArrayMemoryProgram;
+  now: ArrayMemoryStep;
+}) {
+  const { arrayName, values, index } = program;
+  switch (now.phase) {
+    case "start":
+      return (
+        <ExpressionBox
+          caption={<Muted>Address muncul setelah deklarasi.</Muted>}
+        >
+          <span className="text-muted-foreground">
+            Address ?<span className="sr-only"> (belum ada)</span>
+          </span>
+        </ExpressionBox>
+      );
+    case "declare": {
+      const shown = values.slice(0, 3).map((_, i) => addressOf(i));
+      return (
+        <ExpressionBox
+          caption={`Tiap int ${INT_SIZE_BYTES} byte, jadi Address-nya naik ${INT_SIZE_BYTES}.`}
+        >
+          <span className="text-address-ink">
+            {shown.join(", ")}
+            {values.length > shown.length ? ", …" : ""}
+          </span>
+        </ExpressionBox>
+      );
+    }
+    case "locate":
+      return (
+        <ExpressionBox
+          caption={
+            <>
+              <code>
+                {arrayName}[{index}]
+              </code>{" "}
+              ada di Address{" "}
+              <span className="font-mono font-semibold text-address-ink">
+                {now.address}
+              </span>
+              .
+            </>
+          }
+        >
+          <AddressMath
+            start={BASE_ADDRESS}
+            steps={index}
+            startLabel="Address awal"
+            stepsLabel="Index"
+          />
+        </ExpressionBox>
+      );
+    case "print":
+      return (
+        <ExpressionBox
+          caption={
+            <>
+              Value di Address{" "}
+              <span className="font-mono font-semibold text-address-ink">
+                {now.address}
+              </span>
+              , ditampilin printf.
+            </>
+          }
+        >
+          <ElementName name={arrayName} index={index} />
+          <ExpressionArrow />
+          <span className="sr-only">hasilnya</span>
+          <span className="text-memory-ink">{now.result}</span>
+        </ExpressionBox>
+      );
+  }
 }
 
 /** One int fills four bytes, and its Address is the first byte's. */
@@ -144,13 +280,13 @@ function ByteStrip({ access, address }: { access: string; address: number }) {
   return (
     <figure className="flex w-full max-w-xs flex-col gap-1.5">
       <figcaption className="text-center text-sm text-muted-foreground">
-        1 int = {INT_SIZE_BYTES} byte
+        1 int = {INT_SIZE_BYTES} byte (di simulasi ini)
       </figcaption>
-      <div className="rounded-xl border-2 border-memory">
-        <p className="border-b-2 border-memory/40 py-1 text-center font-mono font-semibold wrap-anywhere">
+      <div className="rounded-xl border-2 border-foreground/20 bg-muted/60">
+        <p className="border-b-2 border-foreground/10 py-1 text-center font-mono font-semibold wrap-anywhere">
           {access}
         </p>
-        <ol className="grid grid-cols-4 divide-x-2 divide-memory/40">
+        <ol className="grid grid-cols-4 divide-x-2 divide-foreground/10">
           {Array.from({ length: INT_SIZE_BYTES }, (_, byte) => (
             <li
               key={byte}

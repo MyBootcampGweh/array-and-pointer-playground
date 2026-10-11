@@ -12,31 +12,6 @@ export type CodeRole = "variable" | "index" | "value" | "address" | "pointer";
 export type CodePart = string | { text: string; role: CodeRole };
 export type CodeLine = string | readonly CodePart[];
 
-/**
- * `int nilai[5];`, or with `values` `int nilai[5] = {10, 20, …};`, with the
- * name marked as the Variable and each initial Value as a Value.
- */
-export function arrayDeclaration(
-  name: string,
-  length: number,
-  values?: readonly number[],
-): CodePart[] {
-  const parts: CodePart[] = ["int ", { text: name, role: "variable" }];
-  parts.push(`[${length}]`);
-  if (values) {
-    parts.push(" = {");
-    values.forEach((value, index) => {
-      parts.push(...(index > 0 ? [", "] : []), {
-        text: String(value),
-        role: "value",
-      });
-    });
-    parts.push("}");
-  }
-  parts.push(";");
-  return parts;
-}
-
 // Enough C for these snippets, not a parser. Types count as keywords: both
 // only get weight, because colour in the editor is kept for the roles.
 const KEYWORDS =
@@ -101,4 +76,13 @@ const TOKEN_KINDS: readonly string[] = ["comment", "string", "keyword"];
 
 function isTokenKind(name: string | undefined): name is CodeTokenKind {
   return name !== undefined && TOKEN_KINDS.includes(name);
+}
+
+/** A code line as plain text, roles dropped. */
+export function lineText(line: CodeLine): string {
+  return typeof line === "string"
+    ? line
+    : line
+        .map((part) => (typeof part === "string" ? part : part.text))
+        .join("");
 }

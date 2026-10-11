@@ -1,42 +1,62 @@
 import { type ReactNode } from "react";
 
-import { BASE_ADDRESS, INT_SIZE_BYTES, addressOf } from "@/lib/memory";
+import { INT_SIZE_BYTES } from "@/lib/memory";
 
 type AddressMathProps = {
-  index: number;
-  /** Caption under the start Address. */
-  baseCaption: string;
-  /** Caption under the Index: what one step counts. */
-  indexCaption: string;
+  /** The Address the count starts from. */
+  start: number;
+  /** How many ints to move: an Index, or the k in `ptr + k`. */
+  steps: number;
+  /** Word under the start Address. */
+  startLabel: string;
+  /** Word under the steps: what one step counts. */
+  stepsLabel: string;
+  /** The Value read at the result, for `*(ptr + k)`. */
+  value?: number;
 };
 
-/** `start + Index × size = Address`, each term above the word for its role. */
+/**
+ * `start + steps × 4 = Address`, each term above the word for its role, and
+ * with `value` the `→ Value` read there. It goes inside an `ExpressionBox`,
+ * which sets the size.
+ */
 export function AddressMath({
-  index,
-  baseCaption,
-  indexCaption,
+  start,
+  steps,
+  startLabel,
+  stepsLabel,
+  value,
 }: AddressMathProps) {
   return (
-    // Two halves that each stay on one line: a phone breaks it at `=`.
-    <p className="flex flex-wrap items-start justify-center gap-x-2 gap-y-2 font-mono text-lg font-semibold sm:gap-x-3 sm:text-2xl">
-      <span className="flex items-start gap-x-2 sm:gap-x-3">
-        <Term label={baseCaption} className="text-address-ink">
-          {BASE_ADDRESS}
+    <>
+      {/* Two halves that each stay on one line: a narrow pane breaks the
+          sum at `=`, never inside it. */}
+      <span className="flex items-start gap-x-2 @md:gap-x-3">
+        <Term label={startLabel} className="text-address-ink">
+          {start}
         </Term>
         <Operator>+</Operator>
-        <Term label={indexCaption} className="text-index-ink">
-          {index}
+        <Term label={stepsLabel} className="text-index-ink">
+          {steps}
         </Term>
         <Operator>×</Operator>
         <Term label="byte">{INT_SIZE_BYTES}</Term>
       </span>
-      <span className="flex items-start gap-x-2 sm:gap-x-3">
+      <span className="flex items-start gap-x-2 @md:gap-x-3">
         <Operator>=</Operator>
-        <Term label="Address-nya" className="text-address-ink">
-          {addressOf(index)}
+        <Term label="Address" className="text-address-ink">
+          {start + steps * INT_SIZE_BYTES}
         </Term>
+        {value === undefined ? null : (
+          <>
+            <Operator>→</Operator>
+            <Term label="Value" className="text-memory-ink">
+              {value}
+            </Term>
+          </>
+        )}
       </span>
-    </p>
+    </>
   );
 }
 

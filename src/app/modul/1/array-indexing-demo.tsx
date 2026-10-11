@@ -1,12 +1,19 @@
 "use client";
 
-import { ArrowRight, MousePointerClick, Terminal } from "lucide-react";
 import { useState } from "react";
 
 import { CodePanel } from "@/components/code-panel";
-import { SplitView } from "@/components/split-view";
-import { useStepper } from "@/components/step-controls";
+import { useStepper } from "@/components/run-controls";
 import { Narration, RoleChip } from "@/components/ui";
+import {
+  ElementName,
+  ExpressionArrow,
+  ExpressionBox,
+  Hint,
+  Output,
+  PreviewNote,
+  Workspace,
+} from "@/components/workspace";
 import {
   type ArrayIndexingProgram,
   EXAMPLE_PROGRAM,
@@ -20,7 +27,6 @@ import {
 } from "@/lib/array-indexing";
 
 import { ArrayEditor } from "./array-editor";
-import { RunControls } from "./run-controls";
 
 export function ArrayIndexingDemo() {
   const [program, setProgram] = useState(EXAMPLE_PROGRAM);
@@ -53,53 +59,39 @@ export function ArrayIndexingDemo() {
   }
 
   return (
-    <div className="flex flex-col">
-      <RunControls stepper={stepper} />
-      <SplitView
-        isWorkspace
-        editor={
-          <ArrayEditor
-            key={editorKey}
-            program={program}
-            notice={notice}
-            onEdit={handleEdit}
-          />
-        }
-        code={
-          <CodePanel
-            lines={programLines(program, now.readIndex !== null)}
-            activeLine={now.line}
-            colorSyntax
-          />
-        }
-        visual={
-          <section
-            aria-label="Visualisasi"
-            className="@container flex min-w-0 flex-col gap-5 rounded-2xl bg-card p-3 shadow-elevated ring-1 ring-foreground/10 sm:p-5"
-          >
-            <Narration>
-              <Explanation program={program} now={now} />
-            </Narration>
-            <div className="flex flex-col gap-2">
-              <p className="flex gap-2 text-sm text-muted-foreground">
-                <MousePointerClick
-                  aria-hidden="true"
-                  className="mt-0.5 size-4 shrink-0"
-                />
-                Klik kotaknya buat ganti Index.
-              </p>
-              <ArrayStrip
-                program={program}
-                now={now}
-                onSelect={(index) => handleEdit({ kind: "select", index })}
-              />
-            </div>
-            <Expression program={program} now={now} />
-            <Output text={now.output} />
-          </section>
-        }
+    <Workspace
+      stepper={stepper}
+      editor={
+        <ArrayEditor
+          key={editorKey}
+          program={program}
+          notice={notice}
+          onEdit={handleEdit}
+        />
+      }
+      code={
+        <CodePanel
+          lines={programLines(program, now.readIndex !== null)}
+          activeLine={now.line}
+        />
+      }
+    >
+      <Narration>
+        <Explanation program={program} now={now} />
+      </Narration>
+      <div className="flex flex-col gap-2">
+        <Hint>Klik kotaknya buat ganti Index.</Hint>
+        <ArrayStrip
+          program={program}
+          now={now}
+          onSelect={(index) => handleEdit({ kind: "select", index })}
+        />
+      </div>
+      <Expression program={program} now={now} />
+      <Output
+        pieces={now.output ? [{ kind: "output", text: now.output }] : []}
       />
-    </div>
+    </Workspace>
   );
 }
 
@@ -234,12 +226,9 @@ function ArrayStrip({
           </tbody>
         </table>
       </div>
-      {/* Holds its line after the declaration too, so nothing below jumps. */}
-      <p
-        className={`text-center text-sm text-muted-foreground ${now.isDeclared ? "invisible" : ""}`}
-      >
+      <PreviewNote isShown={!now.isDeclared}>
         Preview array — deklarasi belum dijalankan.
-      </p>
+      </PreviewNote>
     </div>
   );
 }
@@ -257,31 +246,9 @@ function Expression({
 }) {
   const { arrayName, index } = program;
   return (
-    <div className="flex flex-col gap-1.5 rounded-xl bg-muted px-4 py-3">
-      <p className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-xl font-semibold @md:text-2xl @lg:text-3xl">
-        {/* A long name may wrap, but never away from its `[2]`. */}
-        <span className="min-w-0 wrap-anywhere">
-          <span className="text-variable-ink">{arrayName}</span>
-          <span className="whitespace-nowrap">
-            [<span className="text-index-ink">{index}</span>]
-          </span>
-        </span>
-        <ArrowRight
-          aria-hidden="true"
-          className="size-6 shrink-0 text-muted-foreground"
-        />
-        <span className="sr-only">hasilnya</span>
-        {now.result === null ? (
-          <span className="text-muted-foreground">
-            ?<span className="sr-only"> (belum dihitung)</span>
-          </span>
-        ) : (
-          <span className="text-memory-ink">{now.result}</span>
-        )}
-      </p>
-      {/* Always holds a line, so the box never grows when the result lands. */}
-      <p aria-live="polite" className="text-base">
-        {now.result === null ? (
+    <ExpressionBox
+      caption={
+        now.result === null ? (
           <span className="text-muted-foreground">
             Hasilnya muncul pas baris {LINE.access + 1} jalan.
           </span>
@@ -293,29 +260,19 @@ function Expression({
             </span>{" "}
             disimpan ke variabel <code>{RESULT_NAME}</code>.
           </>
-        )}
-      </p>
-    </div>
-  );
-}
-
-/** What `printf` printed; kept small and apart from the expression. */
-function Output({ text }: { text: string }) {
-  return (
-    <div className="flex flex-col gap-1.5">
-      <p className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
-        <Terminal aria-hidden="true" className="size-4" />
-        Output
-      </p>
-      <samp className="block min-h-10 rounded-xl bg-muted px-3 py-2 font-mono text-base wrap-anywhere whitespace-pre-wrap">
-        {text === "" ? (
-          <span className="font-sans text-muted-foreground">
-            Belum ada output.
-          </span>
-        ) : (
-          text
-        )}
-      </samp>
-    </div>
+        )
+      }
+    >
+      <ElementName name={arrayName} index={index} />
+      <ExpressionArrow />
+      <span className="sr-only">hasilnya</span>
+      {now.result === null ? (
+        <span className="text-muted-foreground">
+          ?<span className="sr-only"> (belum dihitung)</span>
+        </span>
+      ) : (
+        <span className="text-memory-ink">{now.result}</span>
+      )}
+    </ExpressionBox>
   );
 }

@@ -1,170 +1,216 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
-
 import { CodePanel } from "@/components/code-panel";
-import {
-  ArrayValuesField,
-  DataEditor,
-  NameField,
-} from "@/components/data-editor";
+import { LoopExpression } from "@/components/loop-expression";
 import { ArrayDiagram } from "@/components/memory-diagram";
-import { StepControls, useStepper } from "@/components/step-controls";
-import { Narration, RoleChip, Screen, Stage } from "@/components/ui";
-import { type CodeLine, arrayDeclaration } from "@/lib/c-syntax";
 import {
-  LOOP_HEADER_PART,
-  type LoopFrame,
-  traceForLoop,
-} from "@/lib/loop-trace";
-
-const DEFAULT_NAME = "nilai";
-const DEFAULT_VALUES: readonly number[] = [10, 20, 30, 40, 50];
-const SNIPPET_NAMES = ["i", "ukuran_array", "printf"];
-const LOOP_LINE = 3;
-const BODY_LINE = 4;
+  EditorCard,
+  FieldRow,
+  LengthSelect,
+  NameInput,
+  ValuesRow,
+} from "@/components/program-editor";
+import { Narration, RoleChip } from "@/components/ui";
+import { useSimulation } from "@/components/use-simulation";
+import {
+  ElementName,
+  ExpressionArrow,
+  Hint,
+  Output,
+  PreviewNote,
+  Workspace,
+} from "@/components/workspace";
+import {
+  EXAMPLE_PROGRAM,
+  type LoopOutputProgram,
+  type LoopOutputStep,
+  TAKEN_NAMES,
+  condition,
+  editProgram,
+  programLines,
+  runSnapshots,
+} from "@/lib/loop-output";
 
 export function LoopOutputDemo() {
-  const [name, setName] = useState(DEFAULT_NAME);
-  const [values, setValues] = useState(DEFAULT_VALUES);
-  const frames = traceForLoop("output", values);
-  const stepper = useStepper(frames.length);
-  const frame = frames[stepper.step] ?? frames[0];
+  const sim = useSimulation({
+    example: EXAMPLE_PROGRAM,
+    edit: editProgram,
+    run: runSnapshots,
+  });
+  const { program, now, handleEdit } = sim;
+  const { arrayName, values } = program;
   const length = values.length;
 
-  const lines: CodeLine[] = [
-    arrayDeclaration(name, length, values),
-    `int ukuran_array = ${length};`,
-    "",
-    "for (int i = 0; i < ukuran_array; i++) {",
-    [
-      '    printf("%d ", ',
-      { text: name, role: "variable" },
-      "[",
-      { text: "i", role: "index" },
-      "]);",
-    ],
-    "}",
-  ];
-  const activeLine =
-    frame.phase === "done"
-      ? null
-      : frame.phase === "body"
-        ? BODY_LINE
-        : LOOP_LINE;
-
-  // Any edit starts the run over, so the code and the diagram always agree.
-  function changeName(next: string) {
-    setName(next);
-    stepper.reset();
-  }
-  function changeValues(next: readonly number[]) {
-    setValues(next);
-    stepper.reset();
-  }
-  function restoreExample() {
-    changeName(DEFAULT_NAME);
-    changeValues(DEFAULT_VALUES);
-  }
-
   return (
-    <Stage
-      code={
-        <CodePanel
-          lines={lines}
-          activeLine={activeLine}
-          activePart={LOOP_HEADER_PART[frame.phase]}
-        />
-      }
+    <Workspace
+      stepper={sim.stepper}
       editor={
-        <DataEditor onRestore={restoreExample}>
-          <NameField
-            label="Nama array"
-            value={name}
-            taken={SNIPPET_NAMES}
-            onCommit={changeName}
-          />
-          <ArrayValuesField
-            name={name}
+        <EditorCard
+          key={sim.editorKey}
+          title="Atur Array"
+          onRestore={() => handleEdit({ kind: "restore" })}
+        >
+          <FieldRow>
+            <NameInput
+              label="Nama array"
+              value={arrayName}
+              taken={TAKEN_NAMES}
+              onCommit={(name) => handleEdit({ kind: "rename", name })}
+            />
+            <LengthSelect
+              value={length}
+              onChange={(next) => handleEdit({ kind: "resize", length: next })}
+            />
+          </FieldRow>
+          <ValuesRow
+            arrayName={arrayName}
             values={values}
-            onChange={changeValues}
-          />
-        </DataEditor>
-      }
-      hint="Tekan Lanjut, terus liat Value-nya pindah ke layar satu per satu."
-      visual={
-        <>
-          <ArrayDiagram
-            name={name}
-            values={frame.cells}
-            activeIndex={frame.activeIndex}
-            // Where i stops: past the end, shown but never read.
-            outside={{
-              index: length,
-              tone: frame.i >= length ? "quiet" : "hidden",
-            }}
-            marks={[
-              {
-                kind: "label",
-                role: "index",
-                column: frame.i,
-                label: `i = ${frame.i}`,
-              },
-            ]}
-          />
-          <Screen
-            output={frame.output}
-            // On a body step, the last value is the one printf just wrote.
-            freshFrom={
-              frame.phase === "body"
-                ? frame.output.trimEnd().lastIndexOf(" ") + 1
-                : null
+            onCommit={(index, value) =>
+              handleEdit({ kind: "value", index, value })
             }
           />
-        </>
+        </EditorCard>
       }
-      controls={<StepControls stepper={stepper} />}
-      narration={<Narration>{describe(frame, name, length)}</Narration>}
-    />
+      code={
+        <CodePanel
+          lines={programLines(program, now.readIndex)}
+          activeLine={now.line}
+          activePart={now.part}
+        />
+      }
+    >
+      <Narration>
+        <Explanation program={program} now={now} />
+      </Narration>
+      <div className="flex flex-col gap-2">
+        <Hint>Tekan Berikutnya, terus liat Value-nya masuk ke Output.</Hint>
+        <ArrayDiagram
+          name={arrayName}
+          values={values}
+          isDeclared={now.isDeclared}
+          activeIndex={now.readIndex}
+          // Where i stops: past the end, shown but never read.
+          pastEnd={(now.i ?? 0) >= length ? "shown" : "held"}
+          marks={[
+            {
+              kind: "label",
+              role: "index",
+              column: now.i ?? 0,
+              label: `i = ${now.i ?? 0}`,
+              isHidden: now.i === null,
+            },
+          ]}
+        />
+        <PreviewNote isShown={!now.isDeclared}>
+          Preview array — deklarasi belum dijalankan.
+        </PreviewNote>
+      </div>
+      <LoopExpression
+        part={
+          now.phase === "print"
+            ? "body"
+            : now.phase === "start" || now.phase === "declare"
+              ? "before"
+              : now.phase
+        }
+        i={now.i}
+        length={length}
+        condition={now.condition}
+        body={
+          now.readIndex === null
+            ? null
+            : {
+                expression: (
+                  <>
+                    <ElementName name={arrayName} index={now.readIndex} />
+                    <ExpressionArrow />
+                    <span className="sr-only">hasilnya</span>
+                    <span className="text-memory-ink">
+                      {values[now.readIndex]}
+                    </span>
+                  </>
+                ),
+                caption: (
+                  <>
+                    printf nampilin{" "}
+                    <span className="font-mono font-semibold text-memory-ink">
+                      {values[now.readIndex]}
+                    </span>
+                    ; isi array-nya tetep.
+                  </>
+                ),
+              }
+        }
+      />
+      <Output pieces={now.terminal} freshFrom={sim.freshFrom} />
+    </Workspace>
   );
 }
 
-function describe(frame: LoopFrame, name: string, length: number): ReactNode {
-  switch (frame.phase) {
+/** One sentence on why the current line does what it does. */
+function Explanation({
+  program,
+  now,
+}: {
+  program: LoopOutputProgram;
+  now: LoopOutputStep;
+}) {
+  const { arrayName, values } = program;
+  const length = values.length;
+  switch (now.phase) {
+    case "start":
+      return (
+        <>
+          Program masuk ke <code>main()</code>. Deklarasi array belum
+          dijalankan.
+        </>
+      );
+    case "declare":
+      return (
+        <>
+          Array <RoleChip role="variable">{arrayName}</RoleChip> udah ada di
+          Memory, lengkap sama {length} Value-nya.
+        </>
+      );
     case "init":
       return (
         <>
-          <code>int i = 0</code>: bikin penghitung i, mulai dari 0. Bagian ini
-          cuma jalan sekali.
+          <code>int i = 0</code> cuma jalan sekali, pas loop baru mulai.
         </>
       );
     case "check":
-      return frame.condition ? (
+      return now.condition ? (
         <>
-          Cek <code>i &lt; ukuran_array</code>: {frame.i} &lt; {length}? Bener,
-          masuk ke loop.
+          Sebelum tiap putaran, loop ngecek <code>{condition(length)}</code>{" "}
+          dulu. Masih bener, jadi lanjut.
         </>
       ) : (
         <>
-          Cek lagi: {length} &lt; {length}? <strong>Salah</strong>, loop
-          berhenti. Semua Value udah tampil.
+          i udah {length}, padahal Index terakhirnya{" "}
+          <RoleChip role="index">{length - 1}</RoleChip>. {length} &lt; {length}{" "}
+          itu salah, jadi loop berhenti dan semua Value udah tampil.
         </>
       );
-    case "body":
+    case "print":
       return (
         <>
-          printf ambil <code>{`${name}[${frame.activeIndex}]`}</code>, Value-nya{" "}
-          <RoleChip role="value">{frame.cells[frame.activeIndex]}</RoleChip>,
-          terus nampilin ke layar plus satu spasi.
+          printf cuma <strong>baca</strong>{" "}
+          <RoleChip role="index">Index {now.readIndex}</RoleChip>, jadi
+          Value-nya nggak berubah.
         </>
       );
     case "increment":
       return (
         <>
-          <code>i++</code>: i naik dari {frame.i - 1} jadi {frame.i}.
+          <code>i++</code> geser i ke Index berikutnya.
         </>
       );
-    case "done":
-      return <>Beres! printf jalan {length} kali, semua Value udah tampil.</>;
+    case "end":
+      return (
+        <>
+          Loop selesai: printf jalan {length} kali, Output-nya nambah satu Value
+          tiap putaran.
+        </>
+      );
   }
 }

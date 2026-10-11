@@ -1,161 +1,271 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
+import { ArrowLeft } from "lucide-react";
 
 import { CodePanel } from "@/components/code-panel";
-import {
-  ArrayValuesField,
-  DataEditor,
-  NameField,
-} from "@/components/data-editor";
+import { LoopExpression } from "@/components/loop-expression";
 import { ArrayDiagram } from "@/components/memory-diagram";
-import { StepControls, useStepper } from "@/components/step-controls";
-import { Narration, RoleChip, Stage } from "@/components/ui";
-import { type CodeLine, arrayDeclaration } from "@/lib/c-syntax";
 import {
-  LOOP_HEADER_PART,
-  type LoopFrame,
-  traceForLoop,
-} from "@/lib/loop-trace";
-
-const DEFAULT_NAME = "nilai";
-const DEFAULT_INPUT: readonly number[] = [10, 20, 30, 40, 50];
-const SNIPPET_NAMES = ["i", "ukuran_array", "scanf"];
-const LOOP_LINE = 3;
-const BODY_LINE = 4;
+  EditorCard,
+  FieldRow,
+  LengthSelect,
+  NameInput,
+} from "@/components/program-editor";
+import { Narration, RoleChip } from "@/components/ui";
+import { useSimulation } from "@/components/use-simulation";
+import {
+  ElementName,
+  Hint,
+  Muted,
+  Output,
+  PreviewNote,
+  ScanfInput,
+  Workspace,
+} from "@/components/workspace";
+import {
+  EXAMPLE_PROGRAM,
+  type LoopInputProgram,
+  type LoopInputStep,
+  TAKEN_NAMES,
+  condition,
+  editProgram,
+  programLines,
+  runSnapshots,
+} from "@/lib/loop-input";
 
 export function LoopInputDemo() {
-  const [name, setName] = useState(DEFAULT_NAME);
-  const [input, setInput] = useState(DEFAULT_INPUT);
-  const frames = traceForLoop("input", input);
-  const stepper = useStepper(frames.length);
-  const frame = frames[stepper.step] ?? frames[0];
-  const length = input.length;
-
-  const lines: CodeLine[] = [
-    arrayDeclaration(name, length),
-    `int ukuran_array = ${length};`,
-    "",
-    "for (int i = 0; i < ukuran_array; i++) {",
-    [
-      '    scanf("%d", &',
-      { text: name, role: "variable" },
-      "[",
-      { text: "i", role: "index" },
-      "]);",
-    ],
-    "}",
-  ];
-  const activeLine =
-    frame.phase === "done"
-      ? null
-      : frame.phase === "body"
-        ? BODY_LINE
-        : LOOP_LINE;
-
-  // Any edit starts the run over, so the code and the diagram always agree.
-  function changeName(next: string) {
-    setName(next);
-    stepper.reset();
-  }
-  function changeInput(next: readonly number[]) {
-    setInput(next);
-    stepper.reset();
-  }
-  function restoreExample() {
-    changeName(DEFAULT_NAME);
-    changeInput(DEFAULT_INPUT);
-  }
+  const sim = useSimulation({
+    example: EXAMPLE_PROGRAM,
+    edit: editProgram,
+    run: runSnapshots,
+  });
+  const { program, now, handleEdit } = sim;
+  const { arrayName, length } = program;
 
   return (
-    <Stage
+    <Workspace
+      stepper={sim.stepper}
+      isAwaitingInput={sim.isAwaitingInput}
+      isOpenEnded={sim.isOpenEnded}
+      editor={
+        <EditorCard
+          key={sim.editorKey}
+          title="Atur Array"
+          onRestore={() => handleEdit({ kind: "restore" })}
+        >
+          <FieldRow>
+            <NameInput
+              label="Nama array"
+              value={arrayName}
+              taken={TAKEN_NAMES}
+              onCommit={(name) => handleEdit({ kind: "rename", name })}
+            />
+            <LengthSelect
+              value={length}
+              onChange={(next) => handleEdit({ kind: "resize", length: next })}
+            />
+          </FieldRow>
+          <p className="text-sm text-muted-foreground">
+            Value-nya kamu ketik sendiri pas scanf jalan.
+          </p>
+        </EditorCard>
+      }
       code={
         <CodePanel
-          lines={lines}
-          activeLine={activeLine}
-          activePart={LOOP_HEADER_PART[frame.phase]}
+          lines={programLines(program)}
+          activeLine={now.line}
+          activePart={now.part}
         />
       }
-      editor={
-        <DataEditor onRestore={restoreExample}>
-          <NameField
-            label="Nama array"
-            value={name}
-            taken={SNIPPET_NAMES}
-            onCommit={changeName}
-          />
-          <ArrayValuesField
-            name={name}
-            values={input}
-            onChange={changeInput}
-            legend="Input keyboard buat"
-          />
-        </DataEditor>
-      }
-      hint="Tekan Lanjut buat jalanin loop-nya selangkah demi selangkah."
-      visual={
+    >
+      <Narration>
+        <Explanation program={program} now={now} />
+      </Narration>
+      <div className="flex flex-col gap-2">
+        <Hint>Pas scanf jalan, ketik angkanya di Terminal.</Hint>
         <ArrayDiagram
-          name={name}
-          values={frame.cells}
-          activeIndex={frame.activeIndex}
+          name={arrayName}
+          values={now.cells ?? Array.from({ length }, () => null)}
+          isDeclared={now.cells !== null}
+          chosenIndex={now.phase === "input" ? now.activeIndex : null}
+          activeIndex={now.phase === "store" ? now.activeIndex : null}
           // Where i stops: past the end, shown but never written.
-          outside={{
-            index: length,
-            tone: frame.i >= length ? "quiet" : "hidden",
-          }}
+          pastEnd={(now.i ?? 0) >= length ? "shown" : "held"}
           marks={[
             {
               kind: "label",
               role: "index",
-              column: frame.i,
-              label: `i = ${frame.i}`,
+              column: now.i ?? 0,
+              label: `i = ${now.i ?? 0}`,
+              isHidden: now.i === null,
             },
           ]}
         />
-      }
-      controls={<StepControls stepper={stepper} />}
-      narration={<Narration>{describe(frame, name, length)}</Narration>}
-    />
+        <PreviewNote isShown={now.cells === null}>
+          Preview array — deklarasi belum dijalankan.
+        </PreviewNote>
+      </div>
+      <Expression program={program} now={now} />
+      <Output
+        title="Terminal"
+        emptyText="Belum ada input."
+        pieces={now.terminal}
+        freshFrom={sim.freshFrom}
+      >
+        {now.phase === "input" ? (
+          <ScanfInput
+            key={sim.stepper.step}
+            label={
+              <>
+                Ketik Value buat{" "}
+                <code>
+                  {arrayName}[{now.activeIndex}]
+                </code>
+              </>
+            }
+            answered={sim.answered}
+            onSubmit={sim.handleInput}
+          />
+        ) : null}
+      </Output>
+    </Workspace>
   );
 }
 
-function describe(frame: LoopFrame, name: string, length: number): ReactNode {
-  switch (frame.phase) {
+/** One sentence on why the current line does what it does. */
+function Explanation({
+  program,
+  now,
+}: {
+  program: LoopInputProgram;
+  now: LoopInputStep;
+}) {
+  const { arrayName, length } = program;
+  switch (now.phase) {
+    case "start":
+      return (
+        <>
+          Program masuk ke <code>main()</code>. Deklarasi array belum
+          dijalankan.
+        </>
+      );
+    case "declare":
+      return (
+        <>
+          Array <RoleChip role="variable">{arrayName}</RoleChip> udah ada:{" "}
+          {length} kotak, tapi isinya belum jelas sampai diisi.
+        </>
+      );
     case "init":
       return (
         <>
-          <code>int i = 0</code>: bikin penghitung i, mulai dari 0. Bagian ini
-          cuma jalan sekali.
+          <code>int i = 0</code> cuma jalan sekali, pas loop baru mulai.
         </>
       );
     case "check":
-      return frame.condition ? (
+      return now.condition ? (
         <>
-          Cek <code>i &lt; ukuran_array</code>: {frame.i} &lt; {length}? Bener,
-          masuk ke loop.
+          Sebelum tiap putaran, loop ngecek <code>{condition(length)}</code>{" "}
+          dulu. Masih bener, jadi lanjut.
         </>
       ) : (
         <>
-          Cek lagi: {length} &lt; {length}? <strong>Salah</strong>, loop
-          berhenti. <code>{`${name}[${length}]`}</code> nggak pernah disentuh.
+          i udah {length}, padahal Index terakhirnya{" "}
+          <RoleChip role="index">{length - 1}</RoleChip>. {length} &lt; {length}{" "}
+          itu salah, jadi loop berhenti sebelum nyentuh{" "}
+          <code>
+            {arrayName}[{length}]
+          </code>
+          .
         </>
       );
-    case "body":
+    case "input":
       return (
         <>
-          scanf baca{" "}
-          <RoleChip role="value">{frame.cells[frame.activeIndex]}</RoleChip>{" "}
-          dari keyboard, terus disimpen di{" "}
-          <RoleChip role="index">Index {frame.activeIndex}</RoleChip>.
+          scanf berhenti dan nunggu kamu ngetik angka buat{" "}
+          <RoleChip role="index">Index {now.activeIndex}</RoleChip>.
+        </>
+      );
+    case "store":
+      return (
+        <>
+          Angka dari keyboard masuk ke{" "}
+          <RoleChip role="index">Index {now.activeIndex}</RoleChip>; kotak lain
+          nggak kesentuh.
         </>
       );
     case "increment":
       return (
         <>
-          <code>i++</code>: i naik dari {frame.i - 1} jadi {frame.i}.
+          <code>i++</code> geser i ke Index berikutnya.
         </>
       );
-    case "done":
-      return <>Beres! scanf jalan {length} kali, semua kotak udah keisi.</>;
+    case "end":
+      return (
+        <>Loop selesai: scanf jalan {length} kali, sekali buat tiap elemen.</>
+      );
   }
+}
+
+/** The part of the loop this step evaluates; the body is scanf's write. */
+function Expression({
+  program,
+  now,
+}: {
+  program: LoopInputProgram;
+  now: LoopInputStep;
+}) {
+  const { arrayName, length } = program;
+  const isBody = now.phase === "input" || now.phase === "store";
+  const value =
+    now.phase === "store" ? now.cells?.[now.activeIndex ?? 0] : null;
+  return (
+    <LoopExpression
+      part={
+        now.phase === "input" || now.phase === "store"
+          ? "body"
+          : now.phase === "start" || now.phase === "declare"
+            ? "before"
+            : now.phase
+      }
+      i={now.i}
+      length={length}
+      condition={now.condition}
+      body={
+        isBody
+          ? {
+              expression: (
+                <>
+                  <ElementName name={arrayName} index={now.activeIndex} />
+                  <ArrowLeft
+                    aria-hidden="true"
+                    className="size-6 shrink-0 text-muted-foreground"
+                  />
+                  <span className="sr-only">diisi</span>
+                  {value === null || value === undefined ? (
+                    <span className="text-muted-foreground">
+                      ?<span className="sr-only"> (nunggu input)</span>
+                    </span>
+                  ) : (
+                    <span className="text-memory-ink">{value}</span>
+                  )}
+                </>
+              ),
+              caption:
+                value === null || value === undefined ? (
+                  <Muted>Nunggu angka dari keyboard.</Muted>
+                ) : (
+                  <>
+                    Value{" "}
+                    <span className="font-mono font-semibold text-memory-ink">
+                      {value}
+                    </span>{" "}
+                    disimpan di elemen ke-{(now.activeIndex ?? 0) + 1}.
+                  </>
+                ),
+            }
+          : null
+      }
+    />
+  );
 }

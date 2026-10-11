@@ -1,115 +1,97 @@
 "use client";
 
-import { type ReactNode, useState } from "react";
-
 import { CodePanel } from "@/components/code-panel";
-import { DataEditor, IntField, NameField } from "@/components/data-editor";
 import { VariableDiagram } from "@/components/memory-diagram";
-import { StepControls, useStepper } from "@/components/step-controls";
-import { Narration, RoleChip, Stage } from "@/components/ui";
-import { type CodeLine } from "@/lib/c-syntax";
-import { BASE_ADDRESS } from "@/lib/memory";
-
-const DEFAULT_NAME = "angka";
-const DEFAULT_POINTER = "ptr";
-const DEFAULT_VALUE = 10;
-
-/** One idea per step: the Variable, `&`, the stored Address, the arrow. */
-const STEPS = ["declare", "address-of", "store", "point"] as const;
-type Step = (typeof STEPS)[number];
+import {
+  EditorCard,
+  FieldRow,
+  IntInput,
+  NameInput,
+} from "@/components/program-editor";
+import { Narration, RoleChip } from "@/components/ui";
+import { useSimulation } from "@/components/use-simulation";
+import {
+  ExpressionArrow,
+  ExpressionBox,
+  Footnote,
+  Muted,
+  PreviewNote,
+  Workspace,
+} from "@/components/workspace";
+import {
+  ADDRESS,
+  EXAMPLE_PROGRAM,
+  type PointerVariableProgram,
+  type PointerVariableStep,
+  editProgram,
+  programLines,
+  runSnapshots,
+  takenNames,
+} from "@/lib/pointer-variable";
 
 export function PointerVariableDemo() {
-  const [name, setName] = useState(DEFAULT_NAME);
-  const [pointer, setPointer] = useState(DEFAULT_POINTER);
-  const [value, setValue] = useState(DEFAULT_VALUE);
-  const stepper = useStepper(STEPS.length);
-  const step: Step = STEPS[stepper.step] ?? "declare";
-
-  const addressOfName = `&${name}`;
-  const lines: CodeLine[] = [
-    [
-      "int ",
-      { text: name, role: "variable" },
-      " = ",
-      { text: String(value), role: "value" },
-      ";",
-    ],
-    [
-      "int *",
-      { text: pointer, role: "pointer" },
-      " = ",
-      { text: addressOfName, role: "address" },
-      ";",
-    ],
-  ];
-  const focus: Record<Step, { line: number | null; part: string | null }> = {
-    declare: { line: 0, part: null },
-    "address-of": { line: 1, part: addressOfName },
-    store: { line: 1, part: `int *${pointer}` },
-    point: { line: null, part: null },
-  };
-
-  // Any edit starts the run over, so the code and the diagram always agree.
-  function changeName(next: string) {
-    setName(next);
-    stepper.reset();
-  }
-  function changePointer(next: string) {
-    setPointer(next);
-    stepper.reset();
-  }
-  function changeValue(next: number) {
-    setValue(next);
-    stepper.reset();
-  }
-  function restoreExample() {
-    changeName(DEFAULT_NAME);
-    changePointer(DEFAULT_POINTER);
-    changeValue(DEFAULT_VALUE);
-  }
+  const sim = useSimulation({
+    example: EXAMPLE_PROGRAM,
+    edit: editProgram,
+    run: runSnapshots,
+  });
+  const { program, now, handleEdit } = sim;
+  const { name, pointer, value } = program;
 
   return (
-    <Stage
-      code={
-        <CodePanel
-          lines={lines}
-          activeLine={focus[step].line}
-          activePart={focus[step].part}
-        />
-      }
+    <Workspace
+      stepper={sim.stepper}
       editor={
-        <DataEditor onRestore={restoreExample}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <NameField
+        <EditorCard
+          key={sim.editorKey}
+          title="Atur Variabel"
+          onRestore={() => handleEdit({ kind: "restore" })}
+        >
+          <FieldRow>
+            <NameInput
               label="Nama variabel"
               value={name}
-              taken={[pointer]}
-              onCommit={changeName}
+              taken={takenNames(program, "name")}
+              onCommit={(next) =>
+                handleEdit({ kind: "rename", target: "name", name: next })
+              }
             />
-            <NameField
+            <NameInput
               label="Nama Pointer"
               value={pointer}
-              taken={[name]}
-              onCommit={changePointer}
+              taken={takenNames(program, "pointer")}
+              onCommit={(next) =>
+                handleEdit({ kind: "rename", target: "pointer", name: next })
+              }
             />
-          </div>
-          <IntField
-            label={`Value ${name}`}
-            value={value}
-            onCommit={changeValue}
-          />
-        </DataEditor>
+            <IntInput
+              label={`Value ${name}`}
+              value={value}
+              onCommit={(next) => handleEdit({ kind: "value", value: next })}
+            />
+          </FieldRow>
+        </EditorCard>
       }
-      hint="Tekan Lanjut buat bikin Pointer-nya selangkah demi selangkah."
-      visual={
+      code={
+        <CodePanel
+          lines={programLines(program)}
+          activeLine={now.line}
+          activePart={now.part}
+        />
+      }
+    >
+      <Narration>
+        <Explanation program={program} now={now} />
+      </Narration>
+      <div className="flex flex-col gap-2">
         <VariableDiagram
           variables={[
             {
               name,
               value,
-              address: BASE_ADDRESS,
-              isActive: step === "declare",
-              isAddressActive: step !== "declare",
+              address: ADDRESS,
+              isDeclared: now.isDeclared,
+              isAddressActive: now.address !== null,
             },
           ]}
           marks={[
@@ -117,58 +99,110 @@ export function PointerVariableDemo() {
               kind: "pointer",
               column: 0,
               name: pointer,
-              value: BASE_ADDRESS,
-              isActive: step === "store",
-              hasArrow: step === "point",
-              isHidden: step === "declare" || step === "address-of",
+              value: ADDRESS,
+              isActive: now.phase === "pointer",
+              isHidden: now.pointerValue === null,
             },
           ]}
         />
-      }
-      controls={<StepControls stepper={stepper} />}
-      narration={<Narration>{describe(step, name, pointer, value)}</Narration>}
-    />
+        <PreviewNote isShown={!now.isDeclared}>
+          Preview variabel — deklarasi belum dijalankan.
+        </PreviewNote>
+      </div>
+      <Expression program={program} now={now} />
+      <Footnote>Address {ADDRESS} cuma simulasi.</Footnote>
+    </Workspace>
   );
 }
 
-function describe(
-  step: Step,
-  name: string,
-  pointer: string,
-  value: number,
-): ReactNode {
-  switch (step) {
+/** One sentence on why the current line does what it does. */
+function Explanation({
+  program,
+  now,
+}: {
+  program: PointerVariableProgram;
+  now: PointerVariableStep;
+}) {
+  const { name, pointer, value } = program;
+  switch (now.phase) {
+    case "start":
+      return (
+        <>
+          Program masuk ke <code>main()</code>. Deklarasi variabel belum
+          dijalankan.
+        </>
+      );
     case "declare":
       return (
         <>
           Variabel <RoleChip role="variable">{name}</RoleChip> nyimpen {value}{" "}
-          di <RoleChip role="address">Address {BASE_ADDRESS}</RoleChip>.
+          di <RoleChip role="address">Address {ADDRESS}</RoleChip>.
         </>
       );
-    case "address-of":
+    case "address":
       return (
         <>
-          <RoleChip role="address">&amp;{name}</RoleChip> artinya Address-nya{" "}
-          {name}: <RoleChip role="address">{BASE_ADDRESS}</RoleChip>, bukan
-          Value-nya.
+          <RoleChip role="address">&amp;{name}</RoleChip> ngambil Address-nya{" "}
+          {name}, bukan Value-nya.
         </>
       );
-    case "store":
+    case "pointer":
       return (
         <>
           Pointer <RoleChip role="pointer">{pointer}</RoleChip> nyimpen{" "}
-          <RoleChip role="address">{BASE_ADDRESS}</RoleChip>: isinya Address,
-          bukan Value {value}.
+          <RoleChip role="address">Address {ADDRESS}</RoleChip>, bukan salinan{" "}
+          {value}. Panahnya cuma gambar dari Address itu.
         </>
       );
-    case "point":
+  }
+}
+
+/** What the current line works out. */
+function Expression({
+  program,
+  now,
+}: {
+  program: PointerVariableProgram;
+  now: PointerVariableStep;
+}) {
+  const { name, pointer, value } = program;
+  const address = <span className="text-address-ink">{ADDRESS}</span>;
+  switch (now.phase) {
+    case "start":
+    case "declare":
       return (
-        <>
-          <RoleChip role="pointer">{pointer}</RoleChip> nyimpen Address-nya{" "}
-          {name}, jadi {pointer} <strong>nunjuk</strong> ke{" "}
-          <RoleChip role="variable">{name}</RoleChip>; panahnya cuma gambaran
-          dari Address itu.
-        </>
+        <ExpressionBox caption={<Muted>Pointer-nya belum ada.</Muted>}>
+          <span className="text-muted-foreground">
+            {pointer} = ?<span className="sr-only"> (belum ada)</span>
+          </span>
+        </ExpressionBox>
+      );
+    case "address":
+      return (
+        <ExpressionBox caption={`Address kotak ${name}.`}>
+          <span className="text-address-ink">&amp;{name}</span>
+          <ExpressionArrow />
+          <span className="sr-only">hasilnya</span>
+          {address}
+        </ExpressionBox>
+      );
+    case "pointer":
+      return (
+        <ExpressionBox
+          caption={
+            <>
+              Isinya Address, bukan Value{" "}
+              <span className="font-mono font-semibold text-memory-ink">
+                {value}
+              </span>
+              .
+            </>
+          }
+        >
+          <span className="text-pointer-ink">{pointer}</span>
+          <span>=</span>
+          {address}
+        </ExpressionBox>
       );
   }
 }

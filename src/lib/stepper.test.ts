@@ -46,3 +46,12 @@ test("play on the last step restarts; manual stepping pauses", () => {
     false,
   );
 });
+
+test("goto jumps there and pauses", () => {
+  const playing = { step: 1, isPlaying: true };
+  assert.deepEqual(stepperReducer(playing, { type: "goto", step: 4 }), {
+    step: 4,
+    isPlaying: false,
+  });
+  assert.equal(stepperReducer(playing, { type: "goto", step: -2 }).step, 0);
+});

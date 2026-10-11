@@ -12,33 +12,21 @@ import {
   tokenise,
 } from "@/lib/c-syntax";
 
-// Greyscale: syntax only gets weight, which still shows the program's shape.
+// Keywords and strings get the two hues no role uses, so code stays readable
+// in dark mode and a colour from the diagram still means its role.
 const TOKEN_CLASS: Record<CodeTokenKind, string> = {
   comment: "text-muted-foreground italic",
-  string: "",
-  keyword: "font-medium",
-  plain: "",
-};
-
-// Coloured: keywords and strings get the two hues no role uses, so code stays
-// readable in dark mode and a colour from the diagram still means its role.
-const COLOR_TOKEN_CLASS: Record<CodeTokenKind, string> = {
-  ...TOKEN_CLASS,
   string: "text-code-string",
   keyword: "font-medium text-code-keyword",
+  plain: "",
 };
 
 type CodePanelProps = {
   lines: readonly CodeLine[];
   /** Zero-based index of the line being executed. */
   activeLine?: number | null;
-  /** Part of the active line to ring, such as `i < ukuran_array`. */
+  /** Part of the active line to ring, such as `i < 5`. */
   activePart?: string | null;
-  /**
-   * Colours keywords and strings. On for modules already moved to the new
-   * workspace (Module 1); the rest stay greyscale until they move.
-   */
-  colorSyntax?: boolean;
 };
 
 /** A static editor window in MBG's style: title bar, gutter, active line. */
@@ -46,9 +34,7 @@ export function CodePanel({
   lines,
   activeLine = null,
   activePart = null,
-  colorSyntax = false,
 }: CodePanelProps) {
-  const tokenClass = colorSyntax ? COLOR_TOKEN_CLASS : TOKEN_CLASS;
   return (
     <section className="min-w-0 overflow-hidden rounded-2xl bg-card shadow-subtle ring-1 ring-foreground/10">
       <div className="flex items-center gap-3 border-b bg-muted px-4 py-2.5">
@@ -89,7 +75,7 @@ export function CodePanel({
                   {index + 1}
                 </span>
                 <span className="pl-3">
-                  {renderLine(line, isActive ? activePart : null, tokenClass)}
+                  {renderLine(line, isActive ? activePart : null)}
                   {isActive ? (
                     <span className="sr-only"> (baris yang lagi jalan)</span>
                   ) : null}
@@ -111,11 +97,7 @@ function partText(part: CodePart): string {
  * Syntax colours come from the whole line, so a token split across parts
  * still reads right; role parts and the ringed part are cut out of it.
  */
-function renderLine(
-  line: CodeLine,
-  ringed: string | null,
-  tokenClass: Record<CodeTokenKind, string>,
-): ReactNode {
+function renderLine(line: CodeLine, ringed: string | null): ReactNode {
   const parts = typeof line === "string" ? [line] : line;
   const text = parts.map(partText).join("");
   const tokens = tokenise(text);
@@ -151,9 +133,7 @@ function renderLine(
         {slice}
       </span>
     ) : (
-      <span key={from}>
-        {renderTokens(sliceTokens(tokens, from, to), tokenClass)}
-      </span>
+      <span key={from}>{renderTokens(sliceTokens(tokens, from, to))}</span>
     );
     return { from, to, node };
   });
@@ -175,12 +155,9 @@ function renderLine(
   );
 }
 
-function renderTokens(
-  tokens: readonly CodeToken[],
-  tokenClass: Record<CodeTokenKind, string>,
-) {
+function renderTokens(tokens: readonly CodeToken[]) {
   return tokens.map((token, index) => {
-    const className = tokenClass[token.kind];
+    const className = TOKEN_CLASS[token.kind];
     return className ? (
       <span key={index} className={className}>
         {token.text}
