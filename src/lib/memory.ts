@@ -27,17 +27,3 @@ export function isInBounds(index: number, length: number): boolean {
 export function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
 }
-
-export type ElementRead =
-  { kind: "ok"; value: number } | { kind: "out-of-bounds" };
-
-/** Reads `values[index]` the way a safe teaching tool must: never past the end. */
-export function readElement(
-  values: readonly number[],
-  index: number,
-): ElementRead {
-  const value = isInBounds(index, values.length) ? values[index] : undefined;
-  return value === undefined
-    ? { kind: "out-of-bounds" }
-    : { kind: "ok", value };
-}

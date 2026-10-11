@@ -44,11 +44,13 @@ const KEYWORDS =
 
 // One alternation scanned left to right: at each position the first group
 // that matches wins, so a keyword inside a string stays part of the string.
+// A header name counts as a string only right after `#include`, so `i < n`
+// with a `>` later on the line is never one.
 const TOKEN = new RegExp(
   [
     String.raw`(?<comment>\/\/.*|\/\*.*?\*\/)`,
-    String.raw`(?<string>"(?:[^"\\]|\\.)*")`,
-    String.raw`(?<keyword>\b(?:${KEYWORDS})\b)`,
+    String.raw`(?<string>"(?:[^"\\]|\\.)*"|(?<=#include\s*)<[^>]*>)`,
+    String.raw`(?<keyword>#include\b|\b(?:${KEYWORDS})\b)`,
   ].join("|"),
   "g",
 );

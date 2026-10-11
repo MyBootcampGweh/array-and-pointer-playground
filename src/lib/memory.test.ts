@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { test } from "node:test";
 
-import { addressOf, clamp, isInBounds, readElement } from "./memory.ts";
+import { addressOf, clamp, isInBounds } from "./memory.ts";
 
 test("addresses start at 1000 and grow by sizeof(int)", () => {
   assert.deepEqual(
@@ -16,13 +16,6 @@ test("bounds are 0 … length − 1", () => {
   assert.equal(isInBounds(5, 5), false);
   assert.equal(isInBounds(-1, 5), false);
   assert.equal(isInBounds(1.5, 5), false);
-});
-
-test("readElement never reads past either end", () => {
-  const values = [10, 20, 30];
-  assert.deepEqual(readElement(values, 2), { kind: "ok", value: 30 });
-  assert.deepEqual(readElement(values, 3), { kind: "out-of-bounds" });
-  assert.deepEqual(readElement(values, -1), { kind: "out-of-bounds" });
 });
 
 test("clamp keeps a value inside the range", () => {

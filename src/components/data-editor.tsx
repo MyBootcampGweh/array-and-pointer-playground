@@ -171,57 +171,6 @@ export function IntField({
   );
 }
 
-/**
- * The Index typed straight into the code: `[ … ]`, brackets included so they
- * wrap together with the input. Its error drops to its own line under the
- * expression.
- */
-export function IndexInput({
-  label,
-  value,
-  onCommit,
-}: {
-  label: string;
-  value: number;
-  onCommit: (value: number) => void;
-}) {
-  const id = useId();
-  const errorId = `${id}-error`;
-  const draft = useDraft(value, String, parseIntInput, onCommit);
-  return (
-    <>
-      <span className="inline-flex items-center gap-1">
-        <span aria-hidden="true">[</span>
-        <label htmlFor={id} className="sr-only">
-          {label}
-        </label>
-        <input
-          id={id}
-          value={draft.text}
-          inputMode="numeric"
-          autoComplete="off"
-          spellCheck={false}
-          aria-invalid={draft.error ? true : undefined}
-          aria-describedby={draft.error ? errorId : undefined}
-          onChange={(event) => draft.change(event.target.value)}
-          onBlur={draft.blur}
-          className="h-11 w-16 rounded-lg border-2 border-index bg-card px-1 text-center text-index-ink transition-colors outline-none focus-visible:ring-3 focus-visible:ring-index/40 aria-invalid:border-dashed aria-invalid:border-destructive"
-        />
-        <span aria-hidden="true">]</span>
-      </span>
-      {draft.error ? (
-        <p
-          id={errorId}
-          role="alert"
-          className="basis-full font-sans text-sm font-normal text-destructive"
-        >
-          {draft.error}
-        </p>
-      ) : null}
-    </>
-  );
-}
-
 export function ArrayValuesField({
   name,
   values,

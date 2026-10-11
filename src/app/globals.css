@@ -98,6 +98,13 @@
   --color-pointer: var(--pointer);
   --color-pointer-ink: var(--pointer-ink);
 
+  /*
+   * Syntax in code. Violet and fuchsia are the hues no role uses, so a
+   * keyword or a string never reads as an Index, Value or Address.
+   */
+  --color-code-keyword: var(--code-keyword);
+  --color-code-string: var(--code-string);
+
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -146,6 +153,10 @@
   --address-ink: #945518;
   --pointer: #d9a800;
   --pointer-ink: #7f6200;
+
+  /* ≥ 5.1:1 on the card and on `muted` (the active line). */
+  --code-keyword: #7c3aed;
+  --code-string: #a21caf;
 }
 
 :root[data-theme="dark"] {
@@ -177,6 +188,9 @@
   --memory-ink: #42b575;
   --address-ink: var(--address);
   --pointer-ink: var(--pointer);
+
+  --code-keyword: #c4b5fd;
+  --code-string: #f0abfc;
 }
 
 @layer base {

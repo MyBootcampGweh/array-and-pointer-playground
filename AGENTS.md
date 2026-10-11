@@ -77,18 +77,34 @@ deployed to GitHub Pages.
   right below it, then the stage. No question, legend row or quiz.
 - Stage: code on the left with `DataEditor` under it, open by default; on the
   right one card with a one-line hint, the diagram, its controls, the
-  narration and, only for a caveat, a short footnote. On a phone the card comes
-  before the editor.
-- Memory is always drawn by `memory-diagram.tsx`: rows Variable, Index, Value,
-  Address; whatever holds an Address (a pointer, `&x`, a loop counter) sits in
-  a row under the column it points at, with an arrow up. Nothing is drawn
-  across columns. Reveal detail on interaction, not up front.
+  narration and, only for a caveat, a short footnote. From `lg` up a draggable
+  divider (`SplitView`, default 50/50, remembered per viewer) sits between the
+  sides and each side scrolls on its own; on a phone the card comes before the
+  editor.
+- New workspace (Module 1 so far; the target for the rest): a sticky control
+  bar above `SplitView editorOnTop`, with Ulangi Simulasi, Sebelumnya,
+  Putar/Jeda (Putar Ulang at the end) and Berikutnya; left, the compact "Atur
+  Array" editor above the code; right, one card with the narration, the array,
+  a large expression with its result (`nilai[2] → 78`) and a small Output. The
+  program is one definition in `src/lib` that generates both the code and the
+  run's snapshots. Fields apply on Enter or blur, and only an accepted change
+  restarts the run. Its array strip is drawn next to the module: neutral boxes,
+  a grey outline for the chosen Index, and the role colour only on the box
+  being read; no Address or Pointer row. Modules 2–9 keep `Stage` until they
+  move.
+- On the old stage, memory is drawn by `memory-diagram.tsx`: rows Variable,
+  Index, Value, Address; whatever holds an Address (a pointer, `&x`, a loop
+  counter) sits in a row under the column it points at, with an arrow up.
+  Nothing is drawn across columns; a mark that changes column slides there.
+  Reveal detail on interaction, not up front.
 - Icons come from `lucide-react`, `aria-hidden` beside a word; an icon-only
-  control keeps an sr-only name. Stepping always goes through `StepControls`.
-- Code always goes through `CodePanel` (MBG's editor frame, greyscale syntax);
-  never style a snippet by hand. Colour in code only ever marks a role: mark
-  the parts that are also in the diagram with their role (`CodePart`) so code
-  and picture share colours.
+  control keeps an sr-only name. Stepping always goes through `useStepper`:
+  `StepControls` on the old stage, the control bar on the new workspace.
+- Code always goes through `CodePanel` (MBG's editor frame); never style a
+  snippet by hand. Mark the parts that are also in the diagram with their role
+  (`CodePart`) so code and picture share colours. Syntax is greyscale on the
+  old stage; the new workspace passes `colorSyntax` (keywords violet, strings
+  fuchsia, hues no role uses).
 
 ## Styling: MBG design system
 
@@ -106,8 +122,9 @@ deployed to GitHub Pages.
   active element is the stronger form of its own role colour, not a separate
   hue. Out-of-bounds is MBG's destructive red with a dashed box and a warning
   icon. Always show the role's word next to its colour.
-- Animate only through `motion-safe:` or plain transitions; keep the global
-  reduced-motion rule. Prettier sorts Tailwind classes.
+- Animate only through `motion-safe:`, plain transitions, or the Web
+  Animations API behind a `prefers-reduced-motion` check; keep the global
+  reduced-motion rule. No animation library. Prettier sorts Tailwind classes.
 
 ## Accessibility
 

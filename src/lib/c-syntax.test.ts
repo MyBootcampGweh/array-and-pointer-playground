@@ -27,6 +27,14 @@ test("tokenise keeps keywords inside strings, comments and longer names", () => 
   ]);
 });
 
+test("tokenise reads an include line, and only there a <header>", () => {
+  assert.deepEqual(kinds("#include <stdio.h>"), [
+    "keyword:#include",
+    "string:<stdio.h>",
+  ]);
+  assert.deepEqual(kinds("if (i < n && n > 0) {"), ["keyword:if"]);
+});
+
 test("tokenise never loses characters", () => {
   const line = '    scanf("%d", &nilai[i]);';
   assert.equal(
