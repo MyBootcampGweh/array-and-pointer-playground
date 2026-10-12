@@ -12,9 +12,8 @@ export default function ScanfAddressPage() {
       number={5}
       analogy={
         <>
-          Kurir butuh Address rumah buat nganter paket. scanf juga gitu:{" "}
-          <code>&amp;angka</code> ngasih tau Address kotak <code>angka</code>,
-          biar angka yang kamu ketik ditaruh di situ.
+          Kurir butuh Address rumah buat nganter paket, scanf juga butuh{" "}
+          <code>&amp;angka</code> biar tau angkanya ditaruh di mana.
         </>
       }
     >

@@ -13,7 +13,7 @@ export default function LoopOutputPage() {
       analogy={
         <>
           Kali ini petugasnya buka loker satu per satu dari nomor 0, terus
-          nyebutin Value-nya. Abis loker terakhir, dia berhenti.
+          nyebutin Value-nya.
         </>
       }
     >

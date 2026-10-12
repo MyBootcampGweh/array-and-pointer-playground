@@ -1,6 +1,6 @@
 "use client";
 
-import { Info, SlidersHorizontal, Undo2 } from "lucide-react";
+import { ChevronUp, Info, SlidersHorizontal, Undo2 } from "lucide-react";
 import { type KeyboardEvent, type ReactNode, useId, useState } from "react";
 
 import { Button } from "@/components/ui";
@@ -183,7 +183,11 @@ export function IntInput({
   );
 }
 
-/** The editor card: a heading, Pulihkan Contoh, and the fields. */
+/**
+ * The editor card: a heading, Pulihkan Contoh, and the fields. The student
+ * may fold the fields away to see more code; they start open. Folded fields
+ * stay mounted, so a half-typed draft is still there when they come back.
+ */
 export function EditorCard({
   title,
   onRestore,
@@ -194,6 +198,8 @@ export function EditorCard({
   children: ReactNode;
 }) {
   const headingId = useId();
+  const bodyId = useId();
+  const [isOpen, setIsOpen] = useState(true);
   return (
     <section
       aria-labelledby={headingId}
@@ -210,16 +216,41 @@ export function EditorCard({
           />
           {title}
         </h2>
-        <Button
-          variant="ghost"
-          onClick={onRestore}
-          className="-mr-2 px-2 text-sm whitespace-nowrap"
-        >
-          <Undo2 aria-hidden="true" />
-          Pulihkan Contoh
-        </Button>
+        <div className="-mr-2 flex flex-wrap justify-end">
+          {isOpen ? (
+            <Button
+              variant="ghost"
+              onClick={onRestore}
+              className="px-2 text-sm whitespace-nowrap"
+            >
+              <Undo2 aria-hidden="true" />
+              Pulihkan Contoh
+            </Button>
+          ) : null}
+          <Button
+            variant="ghost"
+            aria-expanded={isOpen}
+            aria-controls={bodyId}
+            onClick={() => setIsOpen((open) => !open)}
+            title={isOpen ? "Sembunyikan pengaturan" : "Tampilkan pengaturan"}
+            className="px-2 text-sm whitespace-nowrap max-sm:min-w-11"
+          >
+            <ChevronUp
+              aria-hidden="true"
+              className={`transition-transform ${isOpen ? "" : "rotate-180"}`}
+            />
+            {/* A phone has room for Pulihkan Contoh and an icon, not both
+                words; the name stays whole for screen readers. */}
+            <span className="max-sm:sr-only">
+              {isOpen ? "Sembunyikan" : "Tampilkan"}
+            </span>
+            <span className="sr-only"> pengaturan</span>
+          </Button>
+        </div>
       </div>
-      {children}
+      <div id={bodyId} hidden={!isOpen} className="flex flex-col gap-3">
+        {children}
+      </div>
     </section>
   );
 }
@@ -227,6 +258,30 @@ export function EditorCard({
 /** A row of fields that wraps; errors drop to their own line under it. */
 export function FieldRow({ children }: { children: ReactNode }) {
   return <div className="flex flex-wrap items-end gap-3">{children}</div>;
+}
+
+/** An initial Value's label; screen readers also hear whose it is. */
+export function ValueLabel({ name }: { name: string }) {
+  return (
+    <>
+      Value awal<span className="sr-only"> {name}</span>
+    </>
+  );
+}
+
+/** The Value a later `*ptr = …` writes, told apart from the initial ones. */
+export function LaterLabel({ pointer }: { pointer: string }) {
+  // A long Pointer name breaks anywhere rather than widen a narrow field.
+  return <span className="wrap-anywhere">Value baru (*{pointer} = …)</span>;
+}
+
+/** A variable's name and its initial Value: they wrap as one, never apart. */
+export function FieldPair({ children }: { children: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-1 basis-56 flex-wrap items-end gap-2">
+      {children}
+    </div>
+  );
 }
 
 /** What the last edit adjusted, such as a moved Index. */
@@ -292,7 +347,7 @@ export function ValuesRow({
   return (
     <fieldset className="min-w-0">
       <legend className="mb-1 text-sm text-muted-foreground">
-        Value tiap elemen{" "}
+        Value awal tiap elemen{" "}
         <span className="max-sm:sr-only">(ketik, terus Enter)</span>
       </legend>
       <div className="flex flex-wrap items-end gap-2">

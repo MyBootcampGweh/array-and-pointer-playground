@@ -3,6 +3,7 @@
 import { useState } from "react";
 
 import { CodePanel } from "@/components/code-panel";
+import { elementSize } from "@/components/memory-diagram";
 import { useStepper } from "@/components/run-controls";
 import { Narration, RoleChip } from "@/components/ui";
 import {
@@ -11,7 +12,6 @@ import {
   ExpressionBox,
   Hint,
   Output,
-  PreviewNote,
   Workspace,
 } from "@/components/workspace";
 import {
@@ -109,8 +109,7 @@ function Explanation({
     case "start":
       return (
         <>
-          Program masuk ke <code>main()</code>. Deklarasi array belum
-          dijalankan.
+          Program mulai jalan dari <code>main()</code>.
         </>
       );
     case "declare":
@@ -180,7 +179,7 @@ function ArrayStrip({
               {values.map((_, position) => (
                 <td
                   key={position}
-                  className={`pb-1 text-center font-mono text-xs @md:text-sm ${position === now.readIndex ? "font-bold text-index-ink" : "text-muted-foreground"}`}
+                  className={`pb-1 text-center font-mono text-xs @md:text-sm @lg:text-base ${position === now.readIndex ? "font-bold text-index-ink" : "text-muted-foreground"}`}
                 >
                   [{position}]
                 </td>
@@ -215,7 +214,7 @@ function ArrayStrip({
                       aria-pressed={isChosen}
                       aria-label={`${arrayName}[${position}], Value ${now.isDeclared ? value : "belum ada"}`}
                       onClick={() => onSelect(position)}
-                      className={`flex min-h-12 w-full min-w-10 cursor-pointer items-center justify-center border-2 px-1 font-mono text-lg font-semibold tabular-nums transition-[background-color,border-color,box-shadow] duration-200 ease-interaction @md:min-h-14 @md:min-w-13 @md:px-2 @md:text-2xl @lg:min-h-16 @lg:min-w-14 @lg:text-3xl ${shape} ${tone} ${mark}`}
+                      className={`flex w-full cursor-pointer items-center justify-center border-2 font-mono font-semibold tabular-nums transition-[background-color,border-color,box-shadow] duration-200 ease-interaction ${elementSize(values.length)} ${shape} ${tone} ${mark}`}
                     >
                       {now.isDeclared ? value : null}
                     </button>
@@ -226,9 +225,12 @@ function ArrayStrip({
           </tbody>
         </table>
       </div>
-      <PreviewNote isShown={!now.isDeclared}>
-        Preview array — deklarasi belum dijalankan.
-      </PreviewNote>
+      {/* Holds its line once the array exists, so nothing below jumps. */}
+      <p
+        className={`text-center text-sm text-muted-foreground ${now.isDeclared ? "invisible" : ""}`}
+      >
+        Deklarasi belum dijalankan.
+      </p>
     </div>
   );
 }
@@ -250,7 +252,7 @@ function Expression({
       caption={
         now.result === null ? (
           <span className="text-muted-foreground">
-            Hasilnya muncul pas baris {LINE.access + 1} jalan.
+            Belum dievaluasi, hasilnya muncul pas baris {LINE.access + 1} jalan.
           </span>
         ) : (
           <>
@@ -264,14 +266,12 @@ function Expression({
       }
     >
       <ElementName name={arrayName} index={index} />
-      <ExpressionArrow />
-      <span className="sr-only">hasilnya</span>
-      {now.result === null ? (
-        <span className="text-muted-foreground">
-          ?<span className="sr-only"> (belum dihitung)</span>
-        </span>
-      ) : (
-        <span className="text-memory-ink">{now.result}</span>
+      {now.result === null ? null : (
+        <>
+          <ExpressionArrow />
+          <span className="sr-only">hasilnya</span>
+          <span className="text-memory-ink">{now.result}</span>
+        </>
       )}
     </ExpressionBox>
   );

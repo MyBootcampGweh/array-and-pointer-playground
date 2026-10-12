@@ -7,6 +7,7 @@ import {
   DraftInput,
   EditorCard,
   EditorNotice,
+  FieldPair,
   FieldRow,
   LengthSelect,
   NameInput,
@@ -21,7 +22,6 @@ import {
   Footnote,
   Muted,
   Output,
-  PreviewNote,
   Workspace,
 } from "@/components/workspace";
 import { BASE_ADDRESS, INT_SIZE_BYTES, addressOf } from "@/lib/memory";
@@ -57,39 +57,45 @@ export function PointerArrayDemo() {
           onRestore={() => handleEdit({ kind: "restore" })}
         >
           <FieldRow>
-            <NameInput
-              label="Nama array"
-              value={arrayName}
-              taken={takenNames(program, "arrayName")}
-              onCommit={(name) =>
-                handleEdit({ kind: "rename", target: "arrayName", name })
-              }
-            />
-            <NameInput
-              label="Nama Pointer"
-              value={pointer}
-              taken={takenNames(program, "pointer")}
-              onCommit={(name) =>
-                handleEdit({ kind: "rename", target: "pointer", name })
-              }
-            />
-          </FieldRow>
-          <FieldRow>
-            <LengthSelect
-              value={values.length}
-              min={MIN_LENGTH}
-              onChange={(length) => handleEdit({ kind: "resize", length })}
-            />
-            <DraftInput
-              label={`k di *(${pointer} + k)`}
-              value={offset}
-              format={String}
-              parse={(raw) => parseOffset(raw, values.length, pointer)}
-              onCommit={(next) => handleEdit({ kind: "offset", offset: next })}
-              inputMode="numeric"
-              className="w-40"
-              inputClassName="text-index-ink"
-            />
+            <FieldPair>
+              <NameInput
+                label="Nama array"
+                value={arrayName}
+                taken={takenNames(program, "arrayName")}
+                onCommit={(name) =>
+                  handleEdit({ kind: "rename", target: "arrayName", name })
+                }
+                className="flex-1 basis-28"
+              />
+              <LengthSelect
+                value={values.length}
+                min={MIN_LENGTH}
+                onChange={(length) => handleEdit({ kind: "resize", length })}
+              />
+            </FieldPair>
+            <FieldPair>
+              <NameInput
+                label="Nama Pointer"
+                value={pointer}
+                taken={takenNames(program, "pointer")}
+                onCommit={(name) =>
+                  handleEdit({ kind: "rename", target: "pointer", name })
+                }
+                className="flex-1 basis-28"
+              />
+              <DraftInput
+                label={`k di *(${pointer} + k)`}
+                value={offset}
+                format={String}
+                parse={(raw) => parseOffset(raw, values.length, pointer)}
+                onCommit={(next) =>
+                  handleEdit({ kind: "offset", offset: next })
+                }
+                inputMode="numeric"
+                className="w-32"
+                inputClassName="text-index-ink"
+              />
+            </FieldPair>
           </FieldRow>
           <EditorNotice notice={sim.notice} />
           <ValuesRow
@@ -112,47 +118,42 @@ export function PointerArrayDemo() {
       <Narration>
         <Explanation program={program} now={now} />
       </Narration>
-      <div className="flex flex-col gap-2">
-        <ArrayDiagram
-          name={arrayName}
-          values={values}
-          isDeclared={now.isDeclared}
-          activeIndex={now.readIndex}
-          addressIndex={
-            now.probe ??
-            (now.phase === "point" || now.phase === "increment"
-              ? now.pointerAt
-              : now.readIndex)
-          }
-          showAddresses
-          marks={[
-            {
-              kind: "pointer",
-              column: pointerAt,
-              name: pointer,
-              value: addressOf(pointerAt),
-              isActive: now.phase === "point" || now.phase === "increment",
-              isHidden: now.pointerAt === null,
-            },
-            {
-              kind: "label",
-              role: "address",
-              column: now.probe ?? pointerAt,
-              label: `${pointer} + ${offset}`,
-              isHidden: now.probe === null,
-            },
-          ]}
-        />
-        <PreviewNote isShown={!now.isDeclared}>
-          Preview array — deklarasi belum dijalankan.
-        </PreviewNote>
-      </div>
+      <ArrayDiagram
+        name={arrayName}
+        values={values}
+        isDeclared={now.isDeclared}
+        activeIndex={now.readIndex}
+        addressIndex={
+          now.probe ??
+          (now.phase === "point" || now.phase === "increment"
+            ? now.pointerAt
+            : now.readIndex)
+        }
+        showAddresses
+        marks={[
+          {
+            kind: "pointer",
+            column: pointerAt,
+            name: pointer,
+            value: addressOf(pointerAt),
+            isActive: now.phase === "point" || now.phase === "increment",
+            isHidden: now.pointerAt === null,
+          },
+          {
+            kind: "label",
+            role: "address",
+            column: now.probe ?? pointerAt,
+            label: `${pointer} + ${offset}`,
+            isHidden: now.probe === null,
+          },
+        ]}
+        note={now.isDeclared ? null : "Deklarasi belum dijalankan."}
+      />
       <Expression program={program} now={now} />
       <Output pieces={now.terminal} freshFrom={sim.freshFrom} />
       <Footnote>
-        Address di sini simulasi: mulai {BASE_ADDRESS}, tiap int{" "}
-        {INT_SIZE_BYTES} byte, jadi <code>{pointer} + 1</code> loncat{" "}
-        {INT_SIZE_BYTES} byte. Kalau int-nya beda ukuran, loncatnya ikut beda.
+        Address cuma ilustrasi; kalau ukuran int beda,{" "}
+        <code>{pointer} + 1</code> loncatnya ikut beda.
       </Footnote>
     </Workspace>
   );
@@ -171,8 +172,7 @@ function Explanation({
     case "start":
       return (
         <>
-          Program masuk ke <code>main()</code>. Deklarasi array belum
-          dijalankan.
+          Program mulai jalan dari <code>main()</code>.
         </>
       );
     case "declare":
@@ -209,11 +209,7 @@ function Explanation({
             {pointer} + {offset}
           </RoleChip>{" "}
           maju {offset} elemen ({offset * INT_SIZE_BYTES} byte), bukan {offset}{" "}
-          byte, jadi hasilnya sama kayak{" "}
-          <code>
-            {arrayName}[{offset}]
-          </code>{" "}
-          selama {pointer} di elemen pertama.
+          byte.
         </>
       );
     case "increment":
@@ -255,10 +251,10 @@ function Expression({
   switch (now.phase) {
     case "start":
       return (
-        <ExpressionBox caption={<Muted>Pointer-nya belum ada.</Muted>}>
-          <span className="text-muted-foreground">
-            {pointer} = ?<span className="sr-only"> (belum ada)</span>
-          </span>
+        <ExpressionBox
+          caption={<Muted>Deklarasi Pointer belum dijalankan.</Muted>}
+        >
+          <span className="text-muted-foreground">{pointer}</span>
         </ExpressionBox>
       );
     case "declare": {

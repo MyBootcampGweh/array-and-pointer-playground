@@ -12,8 +12,7 @@ export default function ArrayIndexingPage() {
       number={1}
       analogy={
         <>
-          Index itu nomor loker, Value itu barang di dalamnya. Nomornya mulai
-          dari 0, jadi loker nomor 2 itu loker ketiga.
+          Index itu nomor loker yang mulai dari 0, Value itu barang di dalamnya.
         </>
       }
     >

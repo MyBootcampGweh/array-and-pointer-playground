@@ -5,19 +5,16 @@ import { VariableDiagram } from "@/components/memory-diagram";
 import { PointerCompare } from "@/components/pointer-compare";
 import {
   EditorCard,
+  FieldPair,
   FieldRow,
   IntInput,
+  LaterLabel,
   NameInput,
+  ValueLabel,
 } from "@/components/program-editor";
 import { Narration, RoleChip } from "@/components/ui";
 import { useSimulation } from "@/components/use-simulation";
-import {
-  Footnote,
-  Muted,
-  Output,
-  PreviewNote,
-  Workspace,
-} from "@/components/workspace";
+import { Footnote, Muted, Output, Workspace } from "@/components/workspace";
 import {
   ADDRESS,
   type DereferenceProgram,
@@ -52,40 +49,44 @@ export function DereferenceDemo() {
           onRestore={() => handleEdit({ kind: "restore" })}
         >
           <FieldRow>
-            <NameInput
-              label="Nama variabel"
-              value={name}
-              taken={takenNames(program, "name")}
-              onCommit={(next) =>
-                handleEdit({ kind: "rename", target: "name", name: next })
-              }
-            />
-            <NameInput
-              label="Nama Pointer"
-              value={pointer}
-              taken={takenNames(program, "pointer")}
-              onCommit={(next) =>
-                handleEdit({ kind: "rename", target: "pointer", name: next })
-              }
-            />
-          </FieldRow>
-          <FieldRow>
-            <IntInput
-              label={`Value awal ${name}`}
-              value={value}
-              onCommit={(next) =>
-                handleEdit({ kind: "value", target: "value", value: next })
-              }
-              className="flex-1 basis-32"
-            />
-            <IntInput
-              label={`Value baru (*${pointer} = …)`}
-              value={newValue}
-              onCommit={(next) =>
-                handleEdit({ kind: "value", target: "newValue", value: next })
-              }
-              className="flex-1 basis-32"
-            />
+            <FieldPair>
+              <NameInput
+                label="Nama variabel"
+                value={name}
+                taken={takenNames(program, "name")}
+                onCommit={(next) =>
+                  handleEdit({ kind: "rename", target: "name", name: next })
+                }
+                className="flex-1 basis-28"
+              />
+              <IntInput
+                label={<ValueLabel name={name} />}
+                value={value}
+                onCommit={(next) =>
+                  handleEdit({ kind: "value", target: "value", value: next })
+                }
+                className="w-24"
+              />
+            </FieldPair>
+            <FieldPair>
+              <NameInput
+                label="Nama Pointer"
+                value={pointer}
+                taken={takenNames(program, "pointer")}
+                onCommit={(next) =>
+                  handleEdit({ kind: "rename", target: "pointer", name: next })
+                }
+                className="flex-1 basis-28"
+              />
+              <IntInput
+                label={<LaterLabel pointer={pointer} />}
+                value={newValue}
+                onCommit={(next) =>
+                  handleEdit({ kind: "value", target: "newValue", value: next })
+                }
+                className="w-32"
+              />
+            </FieldPair>
           </FieldRow>
         </EditorCard>
       }
@@ -100,38 +101,34 @@ export function DereferenceDemo() {
       <Narration>
         <Explanation program={program} now={now} />
       </Narration>
-      <div className="flex flex-col gap-2">
-        <VariableDiagram
-          variables={[
-            {
-              name,
-              value: now.value,
-              address: ADDRESS,
-              isDeclared: now.isDeclared,
-              isActive: isAtTarget,
-              isAddressActive:
-                now.phase === "read-address" || now.phase === "read-value",
-              alias:
-                now.phase === "read-value" || now.phase === "write"
-                  ? `*${pointer}`
-                  : null,
-            },
-          ]}
-          marks={[
-            {
-              kind: "pointer",
-              column: 0,
-              name: pointer,
-              value: ADDRESS,
-              isActive: now.phase === "pointer" || now.phase === "read-address",
-              isHidden: now.pointerValue === null,
-            },
-          ]}
-        />
-        <PreviewNote isShown={!now.isDeclared}>
-          Preview variabel — deklarasi belum dijalankan.
-        </PreviewNote>
-      </div>
+      <VariableDiagram
+        variables={[
+          {
+            name,
+            value: now.value,
+            address: ADDRESS,
+            isDeclared: now.isDeclared,
+            isActive: isAtTarget,
+            isAddressActive:
+              now.phase === "read-address" || now.phase === "read-value",
+            alias:
+              now.phase === "read-value" || now.phase === "write"
+                ? `*${pointer}`
+                : null,
+          },
+        ]}
+        marks={[
+          {
+            kind: "pointer",
+            column: 0,
+            name: pointer,
+            value: ADDRESS,
+            isActive: now.phase === "pointer" || now.phase === "read-address",
+            isHidden: now.pointerValue === null,
+          },
+        ]}
+        note={!now.isDeclared ? "Deklarasi belum dijalankan." : null}
+      />
       <PointerCompare
         pointer={pointer}
         address={now.pointerValue}
@@ -164,8 +161,7 @@ function Explanation({
     case "start":
       return (
         <>
-          Program masuk ke <code>main()</code>. Deklarasi variabel belum
-          dijalankan.
+          Program mulai jalan dari <code>main()</code>.
         </>
       );
     case "declare":
@@ -231,7 +227,7 @@ function Caption({
   switch (now.phase) {
     case "start":
     case "declare":
-      return <Muted>Pointer-nya belum ada.</Muted>;
+      return <Muted>Deklarasi Pointer belum dijalankan.</Muted>;
     case "pointer":
       return (
         <>

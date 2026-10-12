@@ -65,9 +65,9 @@ const FIGURE_TARGET = 1;
 
 /** The colour key, in the palette's own words. */
 const KEY: readonly { role: Role; term: string; meaning: string }[] = [
-  { role: "variable", term: "Variabel", meaning: "nama kotaknya" },
+  { role: "variable", term: "Variabel", meaning: "tempat nyimpen Value" },
   { role: "index", term: "Index", meaning: "posisi di array, mulai dari 0" },
-  { role: "value", term: "Memory", meaning: "kotak yang nyimpen Value" },
+  { role: "value", term: "Memory", meaning: "tempat data program disimpan" },
   { role: "address", term: "Address", meaning: "lokasi kotaknya" },
   { role: "pointer", term: "Pointer", meaning: "nyimpen Address kotak lain" },
 ];

@@ -14,7 +14,6 @@ import {
   Hint,
   Muted,
   Output,
-  PreviewNote,
   ScanfInput,
   Workspace,
 } from "@/components/workspace";
@@ -96,10 +95,8 @@ export function ScanfAddressDemo() {
               isHidden: !now.hasDestination,
             },
           ]}
+          note={now.isDeclared ? null : "Deklarasi belum dijalankan."}
         />
-        <PreviewNote isShown={!now.isDeclared}>
-          Preview variabel — deklarasi belum dijalankan.
-        </PreviewNote>
       </div>
       <Expression program={program} now={now} />
       <Output
@@ -137,16 +134,15 @@ function Explanation({
     case "start":
       return (
         <>
-          Program masuk ke <code>main()</code>. Deklarasi variabel belum
-          dijalankan.
+          Program mulai jalan dari <code>main()</code>.
         </>
       );
     case "declare":
       return (
         <>
           <code>int {name};</code> bikin kotak di{" "}
-          <RoleChip role="address">Address {ADDRESS}</RoleChip>, tapi belum
-          diisi, jadi Value-nya belum jelas.
+          <RoleChip role="address">Address {ADDRESS}</RoleChip>, tapi nggak
+          ngisi Value-nya.
         </>
       );
     case "address":
@@ -189,17 +185,14 @@ function Expression({
   const address = <span className="text-address-ink">{ADDRESS}</span>;
   switch (now.phase) {
     case "start":
+      return (
+        <ExpressionBox caption={<Muted>Variabelnya belum ada.</Muted>}>
+          <span className="text-muted-foreground">{name}</span>
+        </ExpressionBox>
+      );
     case "declare":
       return (
-        <ExpressionBox
-          caption={
-            <Muted>
-              {now.isDeclared
-                ? "Kotaknya udah ada, isinya belum."
-                : "Variabelnya belum ada."}
-            </Muted>
-          }
-        >
+        <ExpressionBox caption={<Muted>? artinya belum diisi.</Muted>}>
           <span>
             <span className="text-variable-ink">{name}</span> ={" "}
             <span className="text-muted-foreground">
@@ -242,7 +235,7 @@ function Expression({
           <span className="sr-only">diisi</span>
           {now.value === null ? (
             <span className="text-muted-foreground">
-              ?<span className="sr-only"> (nunggu input)</span>
+              …<span className="sr-only"> (nunggu input)</span>
             </span>
           ) : (
             <span className="text-memory-ink">{now.value}</span>

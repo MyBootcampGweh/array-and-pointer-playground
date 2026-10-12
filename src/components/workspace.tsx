@@ -50,7 +50,7 @@ export function Workspace({
         visual={
           <section
             aria-label="Visualisasi"
-            className="@container flex min-w-0 flex-col gap-5 rounded-2xl bg-card p-3 shadow-elevated ring-1 ring-foreground/10 sm:p-5"
+            className="@container flex min-w-0 flex-col gap-4 rounded-2xl bg-card p-3 shadow-elevated ring-1 ring-foreground/10 sm:p-5"
           >
             {children}
           </section>
@@ -79,26 +79,6 @@ export function Footnote({ children }: { children: ReactNode }) {
     <p className="flex gap-2 text-sm text-muted-foreground">
       <Info aria-hidden="true" className="mt-0.5 size-4 shrink-0" />
       <span>{children}</span>
-    </p>
-  );
-}
-
-/**
- * Says the picture is only a preview until the declaration runs. It holds its
- * line afterwards too, so nothing below jumps.
- */
-export function PreviewNote({
-  isShown,
-  children,
-}: {
-  isShown: boolean;
-  children: ReactNode;
-}) {
-  return (
-    <p
-      className={`text-center text-sm text-muted-foreground ${isShown ? "" : "invisible"}`}
-    >
-      {children}
     </p>
   );
 }

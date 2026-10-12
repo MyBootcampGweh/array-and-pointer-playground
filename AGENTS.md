@@ -74,14 +74,17 @@ deployed to GitHub Pages.
   Memory and Pointer; "array" stays lowercase. A variable is the Indonesian
   "variabel" ("Variabel" as a label). Never write `indeks`, `nilai` or `alamat`
   as words; C identifiers in code, such as the array `nilai`, are fine.
-- Module page: the title, its analogy ("Bayangin aja", one or two sentences)
-  right below it, then the workspace. No question, legend row or quiz.
+- Module page: the title, its analogy ("Bayangin aja", one sentence) right
+  below it, then the workspace. No question, legend row or quiz.
 - Workspace (`ModuleFrame` + `Workspace`): full width, a compact header and an
   outline next-module link. A sticky control bar: Ulangi Simulasi,
   Sebelumnya, Putar/Jeda (Putar Ulang at the end) and Berikutnya. From `lg`
   up `SplitView` gives full-height panes with 20px padding, each scrolling on
   its own, and a 1px divider (default 50/50, 30–70, remembered per viewer).
-  Left, the compact "Atur …" editor (`program-editor.tsx`) above the code;
+  Left, the compact "Atur …" editor (`program-editor.tsx`, open by default,
+  folded away only by its Sembunyikan pengaturan toggle) above the code; a
+  name sits beside its initial Value ("Value awal"), and a Value the run
+  assigns later ("Value baru (*ptr = …)") is labelled apart;
   right, one card with the narration, the picture, a large expression with
   its result (`nilai[2] → 78`), a small Output and, only for a caveat, a
   one-line footnote. On a phone: code, card, then the editor.
@@ -94,10 +97,14 @@ deployed to GitHub Pages.
 - Memory is drawn by `memory-diagram.tsx` (Module 1 draws its own strip):
   rows Variabel, Index, Value, Address; whatever holds an Address (a pointer,
   `&x`, a loop counter) sits in a row under the column it points at, with an
-  arrow up. Boxes are neutral: dashed before their declaration runs, a grey
-  outline for the box about to be used, the role colour only on the box being
-  read or written. Nothing is drawn across columns; a mark that changes
-  column slides there.
+  arrow up, passing through empty cells of the rows above. Boxes are neutral:
+  dashed before their declaration runs, a grey outline for the box about to
+  be used, the role colour only on the box (and its Index and Address) being
+  read or written. Pending states get words, not a bare `?`: "Deklarasi belum
+  dijalankan." in the empty row under the boxes, "? artinya belum diisi."
+  for a declared but unset Value, and a muted expression with "Belum
+  dievaluasi" (or "Deklarasi Pointer belum dijalankan.") before it runs.
+  Nothing is drawn across columns; a mark that changes column slides there.
 - Icons come from `lucide-react`, `aria-hidden` beside a word; an icon-only
   control keeps an sr-only name. Stepping always goes through `useStepper`
   and the control bar.

@@ -12,9 +12,8 @@ export default function LoopInputPage() {
       number={2}
       analogy={
         <>
-          Kayak petugas yang ngisi loker satu per satu dari nomor 0. Begitu
-          nomornya sama dengan jumlah loker, dia berhenti, soalnya loker itu
-          emang nggak ada.
+          Kayak petugas yang ngisi loker satu per satu dari nomor 0, terus
+          berhenti pas nomornya sama dengan jumlah loker.
         </>
       }
     >

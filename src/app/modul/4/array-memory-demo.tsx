@@ -25,7 +25,6 @@ import {
   Hint,
   Muted,
   Output,
-  PreviewNote,
   Workspace,
 } from "@/components/workspace";
 import { parseIndex } from "@/lib/array-indexing";
@@ -114,10 +113,8 @@ export function ArrayMemoryDemo() {
           addressIndex={now.address === null ? null : index}
           onSelect={(next) => handleEdit({ kind: "select", index: next })}
           showAddresses
+          note={now.isDeclared ? null : "Deklarasi belum dijalankan."}
         />
-        <PreviewNote isShown={!now.isDeclared}>
-          Preview array — deklarasi belum dijalankan.
-        </PreviewNote>
       </div>
       <Expression program={program} now={now} />
       {now.address === null ? null : (
@@ -143,9 +140,8 @@ export function ArrayMemoryDemo() {
       )}
       <Output pieces={now.terminal} freshFrom={sim.freshFrom} />
       <Footnote>
-        Address di sini simulasi: mulai {BASE_ADDRESS}, tiap int{" "}
-        {INT_SIZE_BYTES} byte. Address asli biasanya heksadesimal dan beda tiap
-        program jalan.
+        Address ini hanya ilustrasi. Address asli sering ditampilkan dalam
+        heksadesimal dan bisa berbeda saat program dijalankan lagi.
       </Footnote>
     </Workspace>
   );
@@ -164,8 +160,7 @@ function Explanation({
     case "start":
       return (
         <>
-          Program masuk ke <code>main()</code>. Deklarasi array belum
-          dijalankan.
+          Program mulai jalan dari <code>main()</code>.
         </>
       );
     case "declare":
@@ -211,9 +206,7 @@ function Expression({
         <ExpressionBox
           caption={<Muted>Address muncul setelah deklarasi.</Muted>}
         >
-          <span className="text-muted-foreground">
-            Address ?<span className="sr-only"> (belum ada)</span>
-          </span>
+          <span className="text-muted-foreground">Address</span>
         </ExpressionBox>
       );
     case "declare": {

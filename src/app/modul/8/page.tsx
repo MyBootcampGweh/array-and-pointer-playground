@@ -12,7 +12,7 @@ export default function PointerTargetPage() {
       number={8}
       analogy={
         <>
-          Ganti Address di catatan nggak bikin rumahnya pindah. Catatannya aja
+          Ganti Address di catatan nggak bikin rumahnya pindah, catatannya aja
           yang sekarang nunjuk ke rumah lain.
         </>
       }

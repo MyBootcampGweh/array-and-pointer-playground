@@ -18,7 +18,6 @@ import {
   Hint,
   Muted,
   Output,
-  PreviewNote,
   ScanfInput,
   Workspace,
 } from "@/components/workspace";
@@ -100,10 +99,14 @@ export function LoopInputDemo() {
               isHidden: now.i === null,
             },
           ]}
+          note={
+            now.cells === null
+              ? "Deklarasi belum dijalankan."
+              : now.phase === "declare"
+                ? "? artinya belum diisi."
+                : null
+          }
         />
-        <PreviewNote isShown={now.cells === null}>
-          Preview array — deklarasi belum dijalankan.
-        </PreviewNote>
       </div>
       <Expression program={program} now={now} />
       <Output
@@ -145,15 +148,16 @@ function Explanation({
     case "start":
       return (
         <>
-          Program masuk ke <code>main()</code>. Deklarasi array belum
-          dijalankan.
+          Program mulai jalan dari <code>main()</code>.
         </>
       );
     case "declare":
       return (
         <>
-          Array <RoleChip role="variable">{arrayName}</RoleChip> udah ada:{" "}
-          {length} kotak, tapi isinya belum jelas sampai diisi.
+          <code>
+            int {arrayName}[{length}];
+          </code>{" "}
+          cuma nyiapin {length} kotak; isinya baru masuk pas scanf jalan.
         </>
       );
     case "init":
@@ -244,7 +248,7 @@ function Expression({
                   <span className="sr-only">diisi</span>
                   {value === null || value === undefined ? (
                     <span className="text-muted-foreground">
-                      ?<span className="sr-only"> (nunggu input)</span>
+                      …<span className="sr-only"> (nunggu input)</span>
                     </span>
                   ) : (
                     <span className="text-memory-ink">{value}</span>

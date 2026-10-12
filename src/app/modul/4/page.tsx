@@ -12,9 +12,8 @@ export default function ArrayMemoryPage() {
       number={4}
       analogy={
         <>
-          Tiap loker lebarnya 4 ubin: loker 0 mulai di ubin 1000, loker 1 di
-          ubin 1004, dan seterusnya. Jadi nomor loker (Index) beda sama nomor
-          ubin (Address).
+          Tiap loker lebarnya 4 ubin, jadi loker nomor 1 mulai di ubin 1004,
+          bukan 1001.
         </>
       }
     >

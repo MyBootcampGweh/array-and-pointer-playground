@@ -18,7 +18,7 @@ export function moduleMetadata(number: ModuleNumber): Metadata {
 
 type ModuleFrameProps = {
   number: ModuleNumber;
-  /** One or two short sentences; the diagram does the rest. */
+  /** One short sentence; the diagram does the rest. */
   analogy: ReactNode;
   /** The interactive simulation. */
   children: ReactNode;

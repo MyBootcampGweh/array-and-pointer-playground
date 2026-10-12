@@ -12,8 +12,8 @@ export default function PointerVariablePage() {
       number={6}
       analogy={
         <>
-          Pointer itu kayak catatan di HP yang isinya Address rumah temen.
-          Catatannya bukan rumahnya, cuma nunjukin rumahnya di mana.
+          Pointer itu kayak catatan di HP yang isinya Address rumah temen, bukan
+          rumahnya.
         </>
       }
     >

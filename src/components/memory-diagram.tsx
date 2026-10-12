@@ -15,8 +15,10 @@ import { addressOf } from "@/lib/memory";
  *
  * Boxes stay neutral. A grey outline marks the box the program is about to
  * use (the chosen Index, or the element scanf waits for); only the box the
- * current step reads or writes turns Value green. Before its declaration
- * runs, a box is a dashed, empty outline: it is not in Memory yet.
+ * current step reads or writes turns Value green, and only its Index and
+ * Address take their role colour. Before its declaration runs, a box is a
+ * dashed, empty outline: it is not in Memory yet, and a short note in the
+ * empty row under it says so.
  *
  * Each diagram is its own size container, so its boxes grow with the pane
  * it sits in rather than with the screen.
@@ -28,15 +30,29 @@ const ROW_HEADER =
 const BOX =
   "flex items-center justify-center border-2 font-mono font-semibold tabular-nums transition-[background-color,border-color,box-shadow] duration-200 ease-interaction";
 
-// Array elements stay compact so five, with their Addresses, fit a 320px
-// phone, and eight plus the box past the end fit half a 1280px screen; a
-// lone variable is the whole picture, so it gets more room.
+// Five elements with their Addresses fit a 320px phone, and eight plus the
+// box past the end fit half a 1280px screen. Up to five, a wider pane makes
+// the boxes themselves bigger; with more they stay compact, so the strip
+// still fits. A lone variable is the whole picture, so it gets more room.
 const ELEMENT_SIZE =
-  "min-h-12 min-w-9 px-1 text-lg @md:min-h-14 @md:min-w-13 @md:text-2xl @lg:min-h-16 @lg:text-3xl";
+  "min-h-12 min-w-9 px-1 text-lg @md:min-h-14 @md:text-2xl @lg:min-h-16 @lg:text-3xl @xl:min-h-18 @2xl:min-h-20 @2xl:text-4xl";
+const ROOMY_ELEMENTS = 5;
+const ELEMENT_WIDTH = {
+  roomy:
+    "@2xs:min-w-10 @md:min-w-16 @lg:min-w-18 @xl:min-w-20 @2xl:min-w-24 @3xl:min-w-28",
+  compact: "@md:min-w-13 @xl:min-w-14 @2xl:min-w-16",
+};
+
+/** An array element's box size, for a strip of `count` elements. */
+export function elementSize(count: number): string {
+  return `${ELEMENT_SIZE} ${ELEMENT_WIDTH[count <= ROOMY_ELEMENTS ? "roomy" : "compact"]}`;
+}
+
 // The slot past the end is no element, so it stays a narrow outline.
-const OUTSIDE_SIZE = "min-h-12 w-9 text-lg @md:min-h-14 @lg:min-h-16";
+const OUTSIDE_SIZE =
+  "min-h-12 w-9 text-lg @md:min-h-14 @lg:min-h-16 @xl:min-h-18 @2xl:min-h-20";
 const VARIABLE_SIZE =
-  "min-h-16 min-w-16 px-2 text-2xl @md:min-h-18 @md:min-w-24 @md:px-3 @md:text-3xl";
+  "min-h-16 min-w-16 px-2 text-2xl @md:min-h-18 @md:min-w-24 @md:px-3 @md:text-3xl @lg:min-h-20 @lg:min-w-28 @lg:text-4xl @2xl:min-h-24 @2xl:min-w-32 @2xl:text-5xl";
 
 /** How a box looks on this step. */
 type BoxState = "preview" | "neutral" | "chosen" | "active";
@@ -83,7 +99,7 @@ function NameLabel({ name, isArray }: { name: string; isArray: boolean }) {
       {isArray ? (
         <span aria-hidden="true" className="h-0.5 flex-1 bg-variable/60" />
       ) : null}
-      <span className="min-w-0 text-center font-mono text-sm font-semibold wrap-anywhere text-variable-ink @md:text-base @lg:text-lg">
+      <span className="min-w-0 text-center font-mono text-sm font-semibold wrap-anywhere text-variable-ink @md:text-base @lg:text-lg @2xl:text-xl">
         {name}
       </span>
       {isArray ? (
@@ -120,24 +136,22 @@ const MARK_STYLE: Record<
 };
 
 /** Ink under the base, so a light base (yellow is 2.2:1 on white) still reads. */
-function UpArrow({
-  role,
-  isHidden = false,
-}: {
-  role: MarkRole;
-  isHidden?: boolean;
-}) {
+function strokes(role: MarkRole) {
   const { casing, core } = MARK_STYLE[role];
+  return [
+    { className: casing, width: 5 },
+    { className: core, width: 2.5 },
+  ];
+}
+
+function UpArrow({ role }: { role: MarkRole }) {
   return (
     <svg
       aria-hidden="true"
       viewBox="0 0 16 30"
-      className={`mx-auto h-7 w-4 overflow-visible ${isHidden ? "invisible" : ""}`}
+      className="mx-auto h-7 w-4 overflow-visible"
     >
-      {[
-        { className: casing, width: 5 },
-        { className: core, width: 2.5 },
-      ].map(({ className, width }) => (
+      {strokes(role).map(({ className, width }) => (
         <path
           key={className}
           d="M8 29V4M3.5 9 8 4l4.5 5"
@@ -149,6 +163,46 @@ function UpArrow({
         />
       ))}
     </svg>
+  );
+}
+
+/** A plain stretch of an arrow; it takes the height its box gives it. */
+function ArrowLine({ role, className }: { role: MarkRole; className: string }) {
+  return (
+    <svg
+      aria-hidden="true"
+      viewBox="0 0 16 10"
+      preserveAspectRatio="none"
+      className={`mx-auto w-4 ${className}`}
+    >
+      {strokes(role).map(({ className: stroke, width }) => (
+        <path
+          key={stroke}
+          d="M8 0V10"
+          fill="none"
+          strokeWidth={width}
+          className={stroke}
+        />
+      ))}
+    </svg>
+  );
+}
+
+/**
+ * A lower row's arrow on its way up through an empty cell, so `ptr + 1`
+ * under one column still reaches that column's Address past the Pointer row.
+ * It fills the cell: the head on top when nothing above is in its way.
+ */
+function PassingArrow({ role, hasHead }: { role: MarkRole; hasHead: boolean }) {
+  return (
+    // `visible`: the row it crosses may be hidden while this arrow is not.
+    <div
+      data-slide="passing"
+      className={`visible absolute inset-0 flex flex-col ${hasHead ? "pt-1" : ""}`}
+    >
+      {hasHead ? <UpArrow role={role} /> : null}
+      <ArrowLine role={role} className="min-h-0 flex-1" />
+    </div>
   );
 }
 
@@ -170,27 +224,119 @@ export type Mark = { column: number; isHidden?: boolean } & (
 
 const MARK_ROWS: readonly MarkRole[] = ["pointer", "address", "index"];
 
-/** One row per kind of mark, so two marks never share a row's columns. */
+/**
+ * One row per kind of mark, so two marks never share a row's columns. A mark
+ * whose column is empty in the rows above sends its arrow up through them.
+ * A `note` takes the place of the first row while that row is still empty.
+ */
 function MarkRows({
   marks,
   columnKeys,
   hangsInwards,
+  note,
+  trailing = false,
 }: {
   marks: readonly Mark[];
   columnKeys: readonly number[];
   hangsInwards?: boolean;
+  note: ReactNode;
+  /** Whether a column past the noted ones follows, such as past the end. */
+  trailing?: boolean;
 }) {
-  return MARK_ROWS.map((role) => {
-    const row = marks.filter((mark) => markRole(mark) === role);
-    return row.length === 0 ? null : (
-      <MarkRow
-        key={role}
-        marks={row}
-        columnKeys={columnKeys}
-        hangsInwards={hangsInwards}
-      />
+  const rows = MARK_ROWS.map((role) => ({
+    role,
+    marks: marks.filter((mark) => markRole(mark) === role),
+  })).filter((row) => row.marks.length > 0);
+  const shownAt = (r: number, column: number) =>
+    rows[r]?.marks.some((mark) => mark.column === column && !mark.isHidden) ??
+    false;
+  const passingAt = (r: number, column: number): MarkRole | null => {
+    if (shownAt(r, column)) {
+      return null;
+    }
+    return (
+      rows
+        .slice(r + 1)
+        .find((row) =>
+          row.marks.some((mark) => mark.column === column && !mark.isHidden),
+        )?.role ?? null
     );
-  });
+  };
+  const first = rows[0]?.marks[0];
+  const noteHolds = Boolean(note) && rows[0]?.marks.every((m) => m.isHidden);
+  const span = trailing ? columnKeys.length - 1 : columnKeys.length;
+  return (
+    <>
+      {rows.map((row, r) =>
+        noteHolds && r === 0 && first ? (
+          <NoteRow
+            key="note"
+            span={span}
+            trailing={trailing}
+            padding="pt-1"
+            holder={<MarkContent mark={first} hang="center" hasHead />}
+          >
+            {note}
+          </NoteRow>
+        ) : (
+          <MarkRow
+            key={row.role}
+            role={row.role}
+            marks={row.marks}
+            columnKeys={columnKeys}
+            hangsInwards={hangsInwards}
+            passingAt={(column) => passingAt(r, column)}
+            hasHeadAt={(column) => r === 0 || shownAt(r - 1, column)}
+          />
+        ),
+      )}
+      {note && !noteHolds ? (
+        <NoteRow span={span} trailing={trailing} padding="pt-1">
+          {note}
+        </NoteRow>
+      ) : null}
+    </>
+  );
+}
+
+/**
+ * A short line on what the picture is waiting for, such as "Deklarasi belum
+ * dijalankan.", under the boxes. It sits over an invisible copy of the row
+ * it stands in for, so the picture keeps its height once that row fills.
+ */
+function NoteRow({
+  span,
+  trailing,
+  padding,
+  holder = null,
+  children,
+}: {
+  span: number;
+  trailing: boolean;
+  padding: string;
+  holder?: ReactNode;
+  children: ReactNode;
+}) {
+  return (
+    <tr>
+      <td />
+      <td colSpan={span} className={padding}>
+        <div className="grid">
+          {holder ? (
+            <div className="invisible col-start-1 row-start-1">{holder}</div>
+          ) : null}
+          {/* Centred under the boxes and never wider than them: it may
+              overhang into the empty row-header column instead. */}
+          <p className="col-start-1 row-start-1 flex w-0 min-w-full justify-center">
+            <span className="shrink-0 text-xs whitespace-nowrap text-muted-foreground @md:text-sm">
+              {children}
+            </span>
+          </p>
+        </div>
+      </td>
+      {trailing ? <td /> : null}
+    </tr>
+  );
 }
 
 function markRole(mark: Mark): MarkRole {
@@ -206,16 +352,32 @@ const HANG: Record<Hang, string> = {
   end: "justify-end",
 };
 
-function MarkContent({ mark, hang }: { mark: Mark; hang: Hang }) {
+function MarkContent({
+  mark,
+  hang,
+  hasHead,
+}: {
+  mark: Mark;
+  hang: Hang;
+  /** False when the arrow carries on up through an empty cell above. */
+  hasHead: boolean;
+}) {
+  const role = markRole(mark);
+  // Headless, it runs through the cell's top padding to meet the rest.
+  const arrow = hasHead ? (
+    <UpArrow role={role} />
+  ) : (
+    <ArrowLine role={role} className="-mt-1 h-8" />
+  );
   if (mark.kind === "label") {
     return (
       <>
-        <UpArrow role={mark.role} />
+        {arrow}
         {/* Like the pointer box: never widen the column, or the strip
             would shift each time a moving label such as `i = 1` steps. */}
         <div className={`flex w-0 min-w-full ${HANG[hang]}`}>
           <span
-            className={`shrink-0 font-mono text-sm font-semibold whitespace-nowrap ${MARK_STYLE[mark.role].text}`}
+            className={`shrink-0 font-mono text-sm font-semibold whitespace-nowrap @lg:text-base ${MARK_STYLE[mark.role].text}`}
           >
             {mark.label}
           </span>
@@ -225,18 +387,18 @@ function MarkContent({ mark, hang }: { mark: Mark; hang: Hang }) {
   }
   return (
     <>
-      <UpArrow role="pointer" />
+      {arrow}
       {/* `w-0 min-w-full` hangs the box under its column without widening
           it, so the strip above keeps even boxes; at the strip's ends it
           hangs inwards instead of past the edge. */}
       <div className={`flex w-0 min-w-full ${HANG[hang]}`}>
         <div
-          className={`flex w-max max-w-36 shrink-0 flex-col items-center rounded-xl border-2 border-pointer bg-pointer/12 px-2.5 py-1 transition-shadow duration-200 ease-interaction ${mark.isActive ? "ring-4 ring-pointer/35" : ""}`}
+          className={`flex w-max max-w-36 shrink-0 flex-col items-center rounded-xl border-2 border-pointer bg-pointer/12 px-2.5 py-1 transition-shadow duration-200 ease-interaction @lg:max-w-44 @lg:px-3 ${mark.isActive ? "ring-4 ring-pointer/35" : ""}`}
         >
-          <span className="text-center font-mono text-sm font-semibold wrap-anywhere text-pointer-ink">
+          <span className="text-center font-mono text-sm font-semibold wrap-anywhere text-pointer-ink @lg:text-base">
             {mark.name}
           </span>
-          <span className="font-mono text-lg font-semibold text-address-ink tabular-nums">
+          <span className="font-mono text-lg font-semibold text-address-ink tabular-nums @lg:text-xl @2xl:text-2xl">
             {mark.value}
           </span>
         </div>
@@ -287,22 +449,26 @@ function useSlidingMarks() {
 }
 
 function MarkRow({
+  role,
   marks,
   columnKeys,
   hangsInwards = false,
+  passingAt,
+  hasHeadAt,
 }: {
+  role: MarkRole;
   marks: readonly Mark[];
   /** What each table column's mark may land on. */
   columnKeys: readonly number[];
   /** Narrow columns: boxes at the ends hang inwards, not past the edge. */
   hangsInwards?: boolean;
+  /** The role of a lower mark whose arrow crosses this empty column. */
+  passingAt: (column: number) => MarkRole | null;
+  /** Whether an arrow in this column ends here, under its target. */
+  hasHeadAt: (column: number) => boolean;
 }) {
   const rowRef = useSlidingMarks();
-  const first = marks[0];
-  if (!first) {
-    return null;
-  }
-  const style = MARK_STYLE[markRole(first)];
+  const style = MARK_STYLE[role];
   const isHidden = marks.every((mark) => mark.isHidden);
   const last = columnKeys.length - 1;
   return (
@@ -310,6 +476,7 @@ function MarkRow({
       <RowHeader className={style.text}>{style.header}</RowHeader>
       {columnKeys.map((column, position) => {
         const mark = marks.find((m) => m.column === column);
+        const passing = passingAt(column);
         const hang: Hang = !hangsInwards
           ? "center"
           : position === 0
@@ -320,12 +487,19 @@ function MarkRow({
         return (
           <td
             key={position}
-            className={`pt-1 text-center align-top ${mark?.isHidden ? "invisible" : ""}`}
+            className={`relative pt-1 text-center align-top ${mark?.isHidden ? "invisible" : ""}`}
           >
             {mark ? (
               <div data-slide={marks.indexOf(mark)}>
-                <MarkContent mark={mark} hang={hang} />
+                <MarkContent
+                  mark={mark}
+                  hang={hang}
+                  hasHead={hasHeadAt(column)}
+                />
               </div>
+            ) : null}
+            {passing ? (
+              <PassingArrow role={passing} hasHead={hasHeadAt(column)} />
             ) : null}
           </td>
         );
@@ -344,7 +518,7 @@ function AddressText({
   return (
     // Thin padding on phones: four digits must not outgrow a 36px box.
     <span
-      className={`inline-block rounded-md px-0.5 font-mono text-xs text-address-ink tabular-nums transition-shadow duration-200 @md:px-1 @md:text-sm ${isActive ? "font-bold ring-2 ring-address" : ""}`}
+      className={`inline-block rounded-md px-0.5 font-mono text-xs tabular-nums transition-shadow duration-200 @md:px-1 @md:text-sm @lg:text-base ${isActive ? "font-bold text-address-ink ring-2 ring-address" : "text-muted-foreground"}`}
     >
       {address}
     </span>
@@ -408,6 +582,11 @@ type ArrayDiagramProps = {
   pastEnd?: PastEnd | null;
   /** Counters or pointers under the elements; `column` is the Index. */
   marks?: readonly Mark[];
+  /**
+   * What the boxes are waiting for, such as "Deklarasi belum dijalankan.",
+   * in the first empty row under them.
+   */
+  note?: ReactNode;
 };
 
 /** An array as one strip of memory: its boxes touch, like its bytes do. */
@@ -422,10 +601,13 @@ export function ArrayDiagram({
   showAddresses = false,
   pastEnd = null,
   marks = [],
+  note = null,
 }: ArrayDiagramProps) {
   const columns = arrayColumns(values, pastEnd);
   const last = values.length - 1;
   const columnIndexes = columns.map((column) => column.index);
+  // Before the declaration the Address row is empty: the note takes it.
+  const notesAddresses = showAddresses && !isDeclared && note !== null;
 
   return (
     <div className={SCROLLER}>
@@ -447,7 +629,7 @@ export function ArrayDiagram({
             {columns.map((column) => (
               <td
                 key={column.index}
-                className={`px-1 pb-1 text-center font-mono text-sm text-index-ink ${column.index === activeIndex ? "font-bold" : ""} ${column.kind === "past-end" && column.look === "held" ? HOLDS_PLACE : ""}`}
+                className={`px-1 pb-1 text-center font-mono text-sm @lg:text-base ${column.index === activeIndex || column.index === chosenIndex ? "font-bold text-index-ink" : "text-muted-foreground"} ${column.kind === "past-end" && column.look === "held" ? HOLDS_PLACE : ""}`}
               >
                 [{column.index}]
               </td>
@@ -490,7 +672,7 @@ export function ArrayDiagram({
                     : "neutral";
               // Neighbours share one border, so the strip reads as one block.
               const shape = `${index === 0 ? "rounded-l-xl" : "border-l-0"} ${index === last ? "rounded-r-xl" : ""}`;
-              const look = `${BOX} ${ELEMENT_SIZE} ${shape} ${BOX_TONE[state]}`;
+              const look = `${BOX} ${elementSize(values.length)} ${shape} ${BOX_TONE[state]}`;
               const content = isDeclared ? (
                 (value ?? <Unassigned />)
               ) : (
@@ -515,7 +697,16 @@ export function ArrayDiagram({
               );
             })}
           </tr>
-          {showAddresses ? (
+          {notesAddresses ? (
+            <NoteRow
+              span={values.length}
+              trailing={pastEnd !== null}
+              padding="pt-1.5"
+              holder={<AddressText address={addressOf(0)} isActive={false} />}
+            >
+              {note}
+            </NoteRow>
+          ) : showAddresses ? (
             <tr>
               <RowHeader className="text-address-ink">Address</RowHeader>
               {columns.map((column) => (
@@ -533,7 +724,13 @@ export function ArrayDiagram({
               ))}
             </tr>
           ) : null}
-          <MarkRows marks={marks} columnKeys={columnIndexes} hangsInwards />
+          <MarkRows
+            marks={marks}
+            columnKeys={columnIndexes}
+            hangsInwards
+            note={notesAddresses ? null : note}
+            trailing={pastEnd !== null}
+          />
         </tbody>
       </table>
     </div>
@@ -563,12 +760,18 @@ export type DiagramVariable = {
 export function VariableDiagram({
   variables,
   marks = [],
+  note = null,
 }: {
   variables: readonly DiagramVariable[];
   /** Pointers or `&x` arguments under the variables; `column` is the position. */
   marks?: readonly Mark[];
+  /** What the boxes are waiting for, in the first empty row under them. */
+  note?: ReactNode;
 }) {
   const columnKeys = variables.map((_, position) => position);
+  const notesAddresses =
+    note !== null &&
+    variables.every((variable) => variable.isDeclared === false);
   return (
     <div className={SCROLLER}>
       <table className="mx-auto border-separate border-spacing-x-3 border-spacing-y-0 @md:border-spacing-x-6">
@@ -621,21 +824,36 @@ export function VariableDiagram({
               );
             })}
           </tr>
-          <tr>
-            <RowHeader className="text-address-ink">Address</RowHeader>
-            {variables.map((variable) => (
-              <td
-                key={variable.name}
-                className={`pt-1.5 text-center ${(variable.isDeclared ?? true) ? "" : "invisible"}`}
-              >
-                <AddressText
-                  address={variable.address}
-                  isActive={variable.isAddressActive ?? false}
-                />
-              </td>
-            ))}
-          </tr>
-          <MarkRows marks={marks} columnKeys={columnKeys} />
+          {notesAddresses ? (
+            <NoteRow
+              span={variables.length}
+              trailing={false}
+              padding="pt-1.5"
+              holder={<AddressText address={addressOf(0)} isActive={false} />}
+            >
+              {note}
+            </NoteRow>
+          ) : (
+            <tr>
+              <RowHeader className="text-address-ink">Address</RowHeader>
+              {variables.map((variable) => (
+                <td
+                  key={variable.name}
+                  className={`pt-1.5 text-center ${(variable.isDeclared ?? true) ? "" : "invisible"}`}
+                >
+                  <AddressText
+                    address={variable.address}
+                    isActive={variable.isAddressActive ?? false}
+                  />
+                </td>
+              ))}
+            </tr>
+          )}
+          <MarkRows
+            marks={marks}
+            columnKeys={columnKeys}
+            note={notesAddresses ? null : note}
+          />
         </tbody>
       </table>
     </div>

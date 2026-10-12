@@ -1,4 +1,3 @@
-import { ArrowRight } from "lucide-react";
 import { type ReactNode } from "react";
 
 import { ExpressionArrow, ExpressionBox, Muted } from "@/components/workspace";
@@ -30,15 +29,10 @@ export function LoopExpression({
   switch (part) {
     case "before":
       return (
-        <ExpressionBox caption={<Muted>Loop-nya belum mulai.</Muted>}>
-          <span className="text-muted-foreground">
-            i &lt; {length}
-            <ArrowRight
-              aria-hidden="true"
-              className="mx-3 inline size-6 align-middle"
-            />
-            ?
-          </span>
+        <ExpressionBox
+          caption={<Muted>Belum dievaluasi: loop-nya belum mulai.</Muted>}
+        >
+          <span className="text-muted-foreground">i &lt; {length}</span>
         </ExpressionBox>
       );
     case "init":

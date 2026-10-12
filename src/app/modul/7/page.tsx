@@ -12,8 +12,8 @@ export default function DereferencePage() {
       number={7}
       analogy={
         <>
-          <code>ptr</code> itu catatan Address-nya. <code>*ptr</code> itu dateng
-          ke rumahnya: bisa liat Value-nya, bisa juga ganti.
+          Kalau <code>ptr</code> itu catatan Address-nya, <code>*ptr</code> itu
+          dateng ke rumahnya buat liat atau ganti Value-nya.
         </>
       }
     >

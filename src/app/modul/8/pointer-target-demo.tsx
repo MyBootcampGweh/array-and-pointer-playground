@@ -5,19 +5,16 @@ import { VariableDiagram } from "@/components/memory-diagram";
 import { PointerCompare } from "@/components/pointer-compare";
 import {
   EditorCard,
+  FieldPair,
   FieldRow,
   IntInput,
+  LaterLabel,
   NameInput,
+  ValueLabel,
 } from "@/components/program-editor";
 import { Narration, RoleChip } from "@/components/ui";
 import { useSimulation } from "@/components/use-simulation";
-import {
-  Footnote,
-  Muted,
-  Output,
-  PreviewNote,
-  Workspace,
-} from "@/components/workspace";
+import { Footnote, Muted, Output, Workspace } from "@/components/workspace";
 import {
   ADDRESSES,
   EXAMPLE_PROGRAM,
@@ -58,46 +55,51 @@ export function PointerTargetDemo() {
           onRestore={() => handleEdit({ kind: "restore" })}
         >
           <FieldRow>
-            <NameInput
-              label="Nama variabel A"
-              value={program.nameA}
-              taken={takenNames(program, "nameA")}
-              onCommit={rename("nameA")}
-              className="flex-1 basis-32"
-            />
-            <IntInput
-              label={`Value ${program.nameA}`}
-              value={program.valueA}
-              onCommit={revalue("valueA")}
-            />
-          </FieldRow>
-          <FieldRow>
-            <NameInput
-              label="Nama variabel B"
-              value={program.nameB}
-              taken={takenNames(program, "nameB")}
-              onCommit={rename("nameB")}
-              className="flex-1 basis-32"
-            />
-            <IntInput
-              label={`Value ${program.nameB}`}
-              value={program.valueB}
-              onCommit={revalue("valueB")}
-            />
-          </FieldRow>
-          <FieldRow>
-            <NameInput
-              label="Nama Pointer"
-              value={pointer}
-              taken={takenNames(program, "pointer")}
-              onCommit={rename("pointer")}
-              className="flex-1 basis-32"
-            />
-            <IntInput
-              label={`Value baru (*${pointer} = …)`}
-              value={program.newValue}
-              onCommit={revalue("newValue")}
-            />
+            <FieldPair>
+              <NameInput
+                label="Nama variabel A"
+                value={program.nameA}
+                taken={takenNames(program, "nameA")}
+                onCommit={rename("nameA")}
+                className="flex-1 basis-28"
+              />
+              <IntInput
+                label={<ValueLabel name={program.nameA} />}
+                value={program.valueA}
+                onCommit={revalue("valueA")}
+                className="w-24"
+              />
+            </FieldPair>
+            <FieldPair>
+              <NameInput
+                label="Nama variabel B"
+                value={program.nameB}
+                taken={takenNames(program, "nameB")}
+                onCommit={rename("nameB")}
+                className="flex-1 basis-28"
+              />
+              <IntInput
+                label={<ValueLabel name={program.nameB} />}
+                value={program.valueB}
+                onCommit={revalue("valueB")}
+                className="w-24"
+              />
+            </FieldPair>
+            <FieldPair>
+              <NameInput
+                label="Nama Pointer"
+                value={pointer}
+                taken={takenNames(program, "pointer")}
+                onCommit={rename("pointer")}
+                className="flex-1 basis-28"
+              />
+              <IntInput
+                label={<LaterLabel pointer={pointer} />}
+                value={program.newValue}
+                onCommit={revalue("newValue")}
+                className="w-32"
+              />
+            </FieldPair>
           </FieldRow>
         </EditorCard>
       }
@@ -112,39 +114,33 @@ export function PointerTargetDemo() {
       <Narration>
         <Explanation program={program} now={now} />
       </Narration>
-      <div className="flex flex-col gap-2">
-        <VariableDiagram
-          variables={TARGETS.map((key, position) => ({
-            name: names[key],
-            value: now.values[key],
-            address: ADDRESSES[key],
-            isDeclared: position < now.declared,
-            isActive:
-              now.phase === "print" ||
-              (now.phase === "write" && key === now.target),
-            isAddressActive:
-              key === now.target &&
-              (now.phase === "point" || now.phase === "redirect"),
-            alias:
-              now.phase === "write" && key === now.target
-                ? `*${pointer}`
-                : null,
-          }))}
-          marks={[
-            {
-              kind: "pointer",
-              column: now.target === "b" ? 1 : 0,
-              name: pointer,
-              value: ADDRESSES[now.target ?? "a"],
-              isActive: now.phase === "point" || now.phase === "redirect",
-              isHidden: now.target === null,
-            },
-          ]}
-        />
-        <PreviewNote isShown={now.declared === 0}>
-          Preview variabel — deklarasi belum dijalankan.
-        </PreviewNote>
-      </div>
+      <VariableDiagram
+        variables={TARGETS.map((key, position) => ({
+          name: names[key],
+          value: now.values[key],
+          address: ADDRESSES[key],
+          isDeclared: position < now.declared,
+          isActive:
+            now.phase === "print" ||
+            (now.phase === "write" && key === now.target),
+          isAddressActive:
+            key === now.target &&
+            (now.phase === "point" || now.phase === "redirect"),
+          alias:
+            now.phase === "write" && key === now.target ? `*${pointer}` : null,
+        }))}
+        marks={[
+          {
+            kind: "pointer",
+            column: now.target === "b" ? 1 : 0,
+            name: pointer,
+            value: ADDRESSES[now.target ?? "a"],
+            isActive: now.phase === "point" || now.phase === "redirect",
+            isHidden: now.target === null,
+          },
+        ]}
+        note={now.declared === 0 ? "Deklarasi belum dijalankan." : null}
+      />
       <PointerCompare
         pointer={pointer}
         address={now.target === null ? null : ADDRESSES[now.target]}
@@ -179,8 +175,7 @@ function Explanation({
     case "start":
       return (
         <>
-          Program masuk ke <code>main()</code>. Deklarasi variabel belum
-          dijalankan.
+          Program mulai jalan dari <code>main()</code>.
         </>
       );
     case "declare-a":
@@ -250,7 +245,7 @@ function Caption({
     case "start":
     case "declare-a":
     case "declare-b":
-      return <Muted>Pointer-nya belum ada.</Muted>;
+      return <Muted>Deklarasi Pointer belum dijalankan.</Muted>;
     case "point":
       return (
         <>

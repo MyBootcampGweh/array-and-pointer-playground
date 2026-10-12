@@ -17,7 +17,6 @@ import {
   ExpressionArrow,
   Hint,
   Output,
-  PreviewNote,
   Workspace,
 } from "@/components/workspace";
 import {
@@ -100,10 +99,8 @@ export function LoopOutputDemo() {
               isHidden: now.i === null,
             },
           ]}
+          note={now.isDeclared ? null : "Deklarasi belum dijalankan."}
         />
-        <PreviewNote isShown={!now.isDeclared}>
-          Preview array — deklarasi belum dijalankan.
-        </PreviewNote>
       </div>
       <LoopExpression
         part={
@@ -161,8 +158,7 @@ function Explanation({
     case "start":
       return (
         <>
-          Program masuk ke <code>main()</code>. Deklarasi array belum
-          dijalankan.
+          Program mulai jalan dari <code>main()</code>.
         </>
       );
     case "declare":
