@@ -17,16 +17,21 @@ export type Stepper = {
   prev: () => void;
   reset: () => void;
   togglePlay: () => void;
-  goTo: (step: number) => void;
+  resume: (step: number) => void;
 };
 
 export function useStepper(stepCount: number): Stepper {
   const [state, dispatch] = useReducer(stepperReducer, INITIAL_STEPPER_STATE);
+  // Guards the render between a shorter run and the reset that follows it.
+  const step = Math.min(state.step, stepCount - 1);
+  // Nothing left to play, such as a resume that lands on the last step or a
+  // run that stops at a scanf waiting for its answer.
+  const isPlaying = state.isPlaying && step < stepCount - 1;
 
-  // The cleanup clears the timer on pause, on every step and on unmount, so
-  // leaving the module never leaves a tick behind.
+  // One timer at a time: the cleanup clears it on pause, on every step and on
+  // unmount, so leaving the module never leaves a tick behind.
   useEffect(() => {
-    if (!state.isPlaying) {
+    if (!isPlaying) {
       return;
     }
     const timer = setTimeout(
@@ -34,21 +39,18 @@ export function useStepper(stepCount: number): Stepper {
       AUTO_PLAY_DELAY_MS,
     );
     return () => clearTimeout(timer);
-  }, [state.isPlaying, state.step, stepCount]);
+  }, [isPlaying, step, stepCount]);
 
   return {
-    // Guards the render between a shorter run and the reset that follows it.
-    step: Math.min(state.step, stepCount - 1),
+    step,
     stepCount,
-    isPlaying: state.isPlaying,
+    isPlaying,
     next: () => dispatch({ type: "next", stepCount }),
     prev: () => dispatch({ type: "prev" }),
     reset: () => dispatch({ type: "reset" }),
     togglePlay: () =>
-      dispatch(
-        state.isPlaying ? { type: "pause" } : { type: "play", stepCount },
-      ),
-    goTo: (step) => dispatch({ type: "goto", step }),
+      dispatch(isPlaying ? { type: "pause" } : { type: "play", stepCount }),
+    resume: (to) => dispatch({ type: "resume", step: to }),
   };
 }
 

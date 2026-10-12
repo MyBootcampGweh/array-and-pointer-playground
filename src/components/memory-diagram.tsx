@@ -9,9 +9,10 @@ import { addressOf } from "@/lib/memory";
  * memory; the rows always mean the same thing and carry their role colour:
  * Variabel (name), Index, Value (the box), Address. Whatever holds an Address
  * (a pointer, or `&angka` handed to scanf) sits in a row underneath, in the
- * same column, with an arrow up to the Address it holds. Nothing is drawn
- * across columns, so labels never overlap at any width; a mark that changes
- * column only slides over on its way.
+ * same column, with an arrow up to the Address it holds. A box another name
+ * reaches right now, such as `*ptr`, gets that name in a tag above it.
+ * Nothing is drawn across columns, so labels never overlap at any width; a
+ * mark that changes column only slides over on its way.
  *
  * Boxes stay neutral. A grey outline marks the box the program is about to
  * use (the chosen Index, or the element scanf waits for); only the box the
@@ -166,51 +167,12 @@ function UpArrow({ role }: { role: MarkRole }) {
   );
 }
 
-/** A plain stretch of an arrow; it takes the height its box gives it. */
-function ArrowLine({ role, className }: { role: MarkRole; className: string }) {
-  return (
-    <svg
-      aria-hidden="true"
-      viewBox="0 0 16 10"
-      preserveAspectRatio="none"
-      className={`mx-auto w-4 ${className}`}
-    >
-      {strokes(role).map(({ className: stroke, width }) => (
-        <path
-          key={stroke}
-          d="M8 0V10"
-          fill="none"
-          strokeWidth={width}
-          className={stroke}
-        />
-      ))}
-    </svg>
-  );
-}
-
-/**
- * A lower row's arrow on its way up through an empty cell, so `ptr + 1`
- * under one column still reaches that column's Address past the Pointer row.
- * It fills the cell: the head on top when nothing above is in its way.
- */
-function PassingArrow({ role, hasHead }: { role: MarkRole; hasHead: boolean }) {
-  return (
-    // `visible`: the row it crosses may be hidden while this arrow is not.
-    <div
-      data-slide="passing"
-      className={`visible absolute inset-0 flex flex-col ${hasHead ? "pt-1" : ""}`}
-    >
-      {hasHead ? <UpArrow role={role} /> : null}
-      <ArrowLine role={role} className="min-h-0 flex-1" />
-    </div>
-  );
-}
-
 /**
  * Something under a column that points at that column's Address: a pointer
  * box with the Address it holds, or just a label such as `i = 2` or `&angka`.
  * A hidden mark keeps its row's space, so the diagram never jumps when it
- * appears.
+ * appears. A hidden pointer is a variable not declared yet, so like any such
+ * box it shows as a dashed outline with its name and no Value.
  */
 export type Mark = { column: number; isHidden?: boolean } & (
   | {
@@ -225,20 +187,17 @@ export type Mark = { column: number; isHidden?: boolean } & (
 const MARK_ROWS: readonly MarkRole[] = ["pointer", "address", "index"];
 
 /**
- * One row per kind of mark, so two marks never share a row's columns. A mark
- * whose column is empty in the rows above sends its arrow up through them.
- * A `note` takes the place of the first row while that row is still empty.
+ * One row per kind of mark, so two marks never share a row's columns. A
+ * `note` takes the place of the first row while that row is still empty.
  */
 function MarkRows({
   marks,
   columnKeys,
-  hangsInwards,
   note,
   trailing = false,
 }: {
   marks: readonly Mark[];
   columnKeys: readonly number[];
-  hangsInwards?: boolean;
   note: ReactNode;
   /** Whether a column past the noted ones follows, such as past the end. */
   trailing?: boolean;
@@ -247,23 +206,8 @@ function MarkRows({
     role,
     marks: marks.filter((mark) => markRole(mark) === role),
   })).filter((row) => row.marks.length > 0);
-  const shownAt = (r: number, column: number) =>
-    rows[r]?.marks.some((mark) => mark.column === column && !mark.isHidden) ??
-    false;
-  const passingAt = (r: number, column: number): MarkRole | null => {
-    if (shownAt(r, column)) {
-      return null;
-    }
-    return (
-      rows
-        .slice(r + 1)
-        .find((row) =>
-          row.marks.some((mark) => mark.column === column && !mark.isHidden),
-        )?.role ?? null
-    );
-  };
   const first = rows[0]?.marks[0];
-  const noteHolds = Boolean(note) && rows[0]?.marks.every((m) => m.isHidden);
+  const noteHolds = Boolean(note) && rows[0]?.marks.every(isGone);
   const span = trailing ? columnKeys.length - 1 : columnKeys.length;
   return (
     <>
@@ -274,7 +218,7 @@ function MarkRows({
             span={span}
             trailing={trailing}
             padding="pt-1"
-            holder={<MarkContent mark={first} hang="center" hasHead />}
+            holder={<MarkContent mark={first} hang="center" />}
           >
             {note}
           </NoteRow>
@@ -284,9 +228,6 @@ function MarkRows({
             role={row.role}
             marks={row.marks}
             columnKeys={columnKeys}
-            hangsInwards={hangsInwards}
-            passingAt={(column) => passingAt(r, column)}
-            hasHeadAt={(column) => r === 0 || shownAt(r - 1, column)}
           />
         ),
       )}
@@ -343,7 +284,21 @@ function markRole(mark: Mark): MarkRole {
   return mark.kind === "pointer" ? "pointer" : mark.role;
 }
 
-/** Where a box wider than its column hangs: centred, or flush with an edge. */
+/** Drawn, but only as a dashed outline: a pointer whose declaration waits. */
+function isPreview(mark: Mark): boolean {
+  return mark.kind === "pointer" && (mark.isHidden ?? false);
+}
+
+function isGone(mark: Mark | undefined): boolean {
+  return mark !== undefined && (mark.isHidden ?? false) && !isPreview(mark);
+}
+
+/**
+ * Where a box wider than its column hangs: centred, or at the strip's ends
+ * flush with the column's outer edge, so it hangs inwards instead of past
+ * the strip. A box that fits stays centred: its `mx-auto` takes the free
+ * space, and auto margins only give way to this when there is none.
+ */
 type Hang = "center" | "start" | "end";
 
 const HANG: Record<Hang, string> = {
@@ -352,23 +307,43 @@ const HANG: Record<Hang, string> = {
   end: "justify-end",
 };
 
-function MarkContent({
-  mark,
+/** Inwards at the strip's ends, so nothing hangs past its edge. */
+function hangAt(position: number, count: number): Hang {
+  if (count === 1) {
+    return "center";
+  }
+  return position === 0 ? "start" : position === count - 1 ? "end" : "center";
+}
+
+/**
+ * The name an expression reaches a box by right now, such as `*(ptr + 1)`,
+ * in a tag right above it. A hidden tag keeps its line, so the picture never
+ * jumps when it shows.
+ */
+function AliasTag({
+  label,
+  isHidden,
   hang,
-  hasHead,
 }: {
-  mark: Mark;
+  label: string;
+  isHidden: boolean;
   hang: Hang;
-  /** False when the arrow carries on up through an empty cell above. */
-  hasHead: boolean;
 }) {
-  const role = markRole(mark);
-  // Headless, it runs through the cell's top padding to meet the rest.
-  const arrow = hasHead ? (
-    <UpArrow role={role} />
-  ) : (
-    <ArrowLine role={role} className="-mt-1 h-8" />
+  return (
+    // `w-0 min-w-full` hangs the tag past a narrow column instead of
+    // widening it; a long one wraps rather than leave the strip.
+    <div className={`flex w-0 min-w-full pb-1 ${HANG[hang]}`}>
+      <span
+        className={`mx-auto max-w-28 shrink-0 rounded-md bg-card px-1.5 text-center font-mono text-xs leading-5 font-semibold wrap-anywhere text-pointer-ink ring-2 ring-pointer @lg:text-sm ${isHidden ? "invisible" : ""}`}
+      >
+        {label}
+      </span>
+    </div>
   );
+}
+
+function MarkContent({ mark, hang }: { mark: Mark; hang: Hang }) {
+  const arrow = <UpArrow role={markRole(mark)} />;
   if (mark.kind === "label") {
     return (
       <>
@@ -377,7 +352,7 @@ function MarkContent({
             would shift each time a moving label such as `i = 1` steps. */}
         <div className={`flex w-0 min-w-full ${HANG[hang]}`}>
           <span
-            className={`shrink-0 font-mono text-sm font-semibold whitespace-nowrap @lg:text-base ${MARK_STYLE[mark.role].text}`}
+            className={`mx-auto shrink-0 font-mono text-sm font-semibold whitespace-nowrap @lg:text-base ${MARK_STYLE[mark.role].text}`}
           >
             {mark.label}
           </span>
@@ -385,21 +360,33 @@ function MarkContent({
       </>
     );
   }
+  const preview = isPreview(mark);
   return (
     <>
-      {arrow}
+      <div className={preview ? "invisible" : undefined}>{arrow}</div>
       {/* `w-0 min-w-full` hangs the box under its column without widening
           it, so the strip above keeps even boxes; at the strip's ends it
           hangs inwards instead of past the edge. */}
       <div className={`flex w-0 min-w-full ${HANG[hang]}`}>
         <div
-          className={`flex w-max max-w-36 shrink-0 flex-col items-center rounded-xl border-2 border-pointer bg-pointer/12 px-2.5 py-1 transition-shadow duration-200 ease-interaction @lg:max-w-44 @lg:px-3 ${mark.isActive ? "ring-4 ring-pointer/35" : ""}`}
+          className={`mx-auto flex w-max max-w-36 shrink-0 flex-col items-center rounded-xl border-2 px-2.5 py-1 transition-shadow duration-200 ease-interaction @lg:max-w-44 @lg:px-3 ${preview ? "border-dashed border-foreground/25" : "border-pointer bg-pointer/12"} ${mark.isActive ? "ring-4 ring-pointer/35" : ""}`}
         >
-          <span className="text-center font-mono text-sm font-semibold wrap-anywhere text-pointer-ink @lg:text-base">
+          <span
+            className={`text-center font-mono text-sm font-semibold wrap-anywhere @lg:text-base ${preview ? "text-muted-foreground" : "text-pointer-ink"}`}
+          >
             {mark.name}
           </span>
           <span className="font-mono text-lg font-semibold text-address-ink tabular-nums @lg:text-xl @2xl:text-2xl">
-            {mark.value}
+            {/* A blank line keeps the box's height; the Address it will hold
+                is not known yet. */}
+            {preview ? (
+              <>
+                {"\u00a0"}
+                <span className="sr-only">belum ada</span>
+              </>
+            ) : (
+              mark.value
+            )}
           </span>
         </div>
       </div>
@@ -452,54 +439,32 @@ function MarkRow({
   role,
   marks,
   columnKeys,
-  hangsInwards = false,
-  passingAt,
-  hasHeadAt,
 }: {
   role: MarkRole;
   marks: readonly Mark[];
   /** What each table column's mark may land on. */
   columnKeys: readonly number[];
-  /** Narrow columns: boxes at the ends hang inwards, not past the edge. */
-  hangsInwards?: boolean;
-  /** The role of a lower mark whose arrow crosses this empty column. */
-  passingAt: (column: number) => MarkRole | null;
-  /** Whether an arrow in this column ends here, under its target. */
-  hasHeadAt: (column: number) => boolean;
 }) {
   const rowRef = useSlidingMarks();
   const style = MARK_STYLE[role];
-  const isHidden = marks.every((mark) => mark.isHidden);
-  const last = columnKeys.length - 1;
+  const isHidden = marks.every(isGone);
   return (
     <tr ref={rowRef} className={isHidden ? "invisible" : undefined}>
       <RowHeader className={style.text}>{style.header}</RowHeader>
       {columnKeys.map((column, position) => {
         const mark = marks.find((m) => m.column === column);
-        const passing = passingAt(column);
-        const hang: Hang = !hangsInwards
-          ? "center"
-          : position === 0
-            ? "start"
-            : position === last
-              ? "end"
-              : "center";
         return (
           <td
             key={position}
-            className={`relative pt-1 text-center align-top ${mark?.isHidden ? "invisible" : ""}`}
+            className={`pt-1 text-center align-top ${isGone(mark) ? "invisible" : ""}`}
           >
             {mark ? (
               <div data-slide={marks.indexOf(mark)}>
                 <MarkContent
                   mark={mark}
-                  hang={hang}
-                  hasHead={hasHeadAt(column)}
+                  hang={hangAt(position, columnKeys.length)}
                 />
               </div>
-            ) : null}
-            {passing ? (
-              <PassingArrow role={passing} hasHead={hasHeadAt(column)} />
             ) : null}
           </td>
         );
@@ -582,6 +547,8 @@ type ArrayDiagramProps = {
   pastEnd?: PastEnd | null;
   /** Counters or pointers under the elements; `column` is the Index. */
   marks?: readonly Mark[];
+  /** Another name for one element right now, such as `*(ptr + 1)`. */
+  alias?: { column: number; label: string; isHidden: boolean };
   /**
    * What the boxes are waiting for, such as "Deklarasi belum dijalankan.",
    * in the first empty row under them.
@@ -601,6 +568,7 @@ export function ArrayDiagram({
   showAddresses = false,
   pastEnd = null,
   marks = [],
+  alias,
   note = null,
 }: ArrayDiagramProps) {
   const columns = arrayColumns(values, pastEnd);
@@ -624,6 +592,22 @@ export function ArrayDiagram({
             </td>
             {pastEnd === null ? null : <td />}
           </tr>
+          {alias ? (
+            <tr>
+              <td />
+              {columns.map((column, position) => (
+                <td key={column.index}>
+                  {column.index === alias.column ? (
+                    <AliasTag
+                      label={alias.label}
+                      isHidden={alias.isHidden}
+                      hang={hangAt(position, columns.length)}
+                    />
+                  ) : null}
+                </td>
+              ))}
+            </tr>
+          ) : null}
           <tr>
             <RowHeader className="text-index-ink">Index</RowHeader>
             {columns.map((column) => (
@@ -727,7 +711,6 @@ export function ArrayDiagram({
           <MarkRows
             marks={marks}
             columnKeys={columnIndexes}
-            hangsInwards
             note={notesAddresses ? null : note}
             trailing={pastEnd !== null}
           />

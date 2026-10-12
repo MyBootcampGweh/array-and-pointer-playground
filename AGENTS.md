@@ -92,12 +92,17 @@ deployed to GitHub Pages.
   the code and the run's snapshots; `useSimulation` holds it. Fields apply on
   Enter or blur, and only an accepted change restarts the run (paused, typed
   input cleared); Pulihkan Contoh brings back the example. scanf pauses the
-  run until the student answers in the terminal; an answer is part of the
+  run until the student answers in the terminal: the waiting field takes the
+  focus, and Enter (never blur) stores a valid answer, after which the run
+  plays on by itself to the next scanf or its end. An answer is part of the
   run's history, and changing one drops the answers after it.
 - Memory is drawn by `memory-diagram.tsx` (Module 1 draws its own strip):
   rows Variabel, Index, Value, Address; whatever holds an Address (a pointer,
   `&x`, a loop counter) sits in a row under the column it points at, with an
-  arrow up, passing through empty cells of the rows above. Boxes are neutral:
+  arrow up; a Pointer not declared yet is a dashed outline with its name.
+  One arrow per Pointer, for where it really points: an expression that
+  reaches a box, such as `*ptr` or `*(ptr + 1)`, tags that box instead, and
+  the expression box shows only the current step. Boxes are neutral:
   dashed before their declaration runs, a grey outline for the box about to
   be used, the role colour only on the box (and its Index and Address) being
   read or written. Pending states get words, not a bare `?`: "Deklarasi belum

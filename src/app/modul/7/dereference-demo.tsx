@@ -2,7 +2,6 @@
 
 import { CodePanel } from "@/components/code-panel";
 import { VariableDiagram } from "@/components/memory-diagram";
-import { PointerCompare } from "@/components/pointer-compare";
 import {
   EditorCard,
   FieldPair,
@@ -14,7 +13,14 @@ import {
 } from "@/components/program-editor";
 import { Narration, RoleChip } from "@/components/ui";
 import { useSimulation } from "@/components/use-simulation";
-import { Footnote, Muted, Output, Workspace } from "@/components/workspace";
+import {
+  ExpressionArrow,
+  ExpressionBox,
+  Footnote,
+  Muted,
+  Output,
+  Workspace,
+} from "@/components/workspace";
 import {
   ADDRESS,
   type DereferenceProgram,
@@ -129,19 +135,7 @@ export function DereferenceDemo() {
         ]}
         note={!now.isDeclared ? "Deklarasi belum dijalankan." : null}
       />
-      <PointerCompare
-        pointer={pointer}
-        address={now.pointerValue}
-        value={now.pointerValue === null ? null : now.value}
-        focus={
-          now.phase === "pointer" || now.phase === "read-address"
-            ? "pointer"
-            : now.phase === "read-value" || now.phase === "write"
-              ? "target"
-              : null
-        }
-        caption={<Caption program={program} now={now} />}
-      />
+      <Expression program={program} now={now} />
       <Output pieces={now.terminal} freshFrom={sim.freshFrom} />
       <Footnote>Address {ADDRESS} cuma simulasi.</Footnote>
     </Workspace>
@@ -175,33 +169,31 @@ function Explanation({
       return (
         <>
           <strong>* di deklarasi</strong> cuma tanda kalau{" "}
-          <RoleChip role="pointer">{pointer}</RoleChip> itu Pointer; isinya{" "}
-          <RoleChip role="address">Address {ADDRESS}</RoleChip>.
+          <RoleChip role="pointer">{pointer}</RoleChip> itu Pointer; isinya
+          Address <RoleChip role="variable">{name}</RoleChip>.
         </>
       );
     case "read-address":
       return (
         <>
-          <strong>* di depan {pointer}</strong> artinya “buka Address-nya”: cek
-          dulu isi <RoleChip role="pointer">{pointer}</RoleChip>, dapet{" "}
-          <RoleChip role="address">{ADDRESS}</RoleChip>.
+          <strong>* di depan {pointer}</strong> artinya ikutin panahnya: ambil
+          dulu Address yang disimpen{" "}
+          <RoleChip role="pointer">{pointer}</RoleChip>.
         </>
       );
     case "read-value":
       return (
         <>
-          Buka Address {ADDRESS}: Value-nya{" "}
-          <RoleChip role="value">{now.value}</RoleChip>, itu yang ditampilin
-          printf.
+          Di ujung panahnya ada <RoleChip role="variable">{name}</RoleChip>,
+          jadi printf nampilin Value-nya.
         </>
       );
     case "write":
       return (
         <>
-          <code>*{pointer} = …</code> nulis{" "}
-          <RoleChip role="value">{now.value}</RoleChip> ke Address {ADDRESS},
-          jadi <RoleChip role="variable">{name}</RoleChip> berubah; {pointer}{" "}
-          sendiri nggak pindah.
+          Value <RoleChip role="variable">{name}</RoleChip> berubah jadi{" "}
+          <RoleChip role="value">{now.value}</RoleChip>. Target{" "}
+          <code>{pointer}</code> tetep sama.
         </>
       );
     case "print-name":
@@ -215,38 +207,82 @@ function Explanation({
   }
 }
 
-/** What the comparison shows on this step, in a few words. */
-function Caption({
+/** The one expression this step works out, with what it gives. */
+function Expression({
   program,
   now,
 }: {
   program: DereferenceProgram;
   now: DereferenceStep;
 }) {
-  const { pointer } = program;
+  const { name, pointer } = program;
+  const deref = (
+    <span className="min-w-0 wrap-anywhere text-pointer-ink">*{pointer}</span>
+  );
+  const value = <span className="text-memory-ink">{now.value}</span>;
   switch (now.phase) {
     case "start":
     case "declare":
-      return <Muted>Deklarasi Pointer belum dijalankan.</Muted>;
+      return (
+        <ExpressionBox
+          caption={<Muted>Deklarasi Pointer belum dijalankan.</Muted>}
+        >
+          <span className="min-w-0 wrap-anywhere text-muted-foreground">
+            *{pointer}
+          </span>
+        </ExpressionBox>
+      );
     case "pointer":
       return (
-        <>
-          <code>{pointer}</code> nyimpen Address; <code>*{pointer}</code> itu
-          Value di sana.
-        </>
+        <ExpressionBox caption={`Target ${pointer}: ${name}.`}>
+          <span className="min-w-0 wrap-anywhere text-pointer-ink">
+            {pointer}
+          </span>
+          <span>=</span>
+          <span className="text-address-ink">{ADDRESS}</span>
+        </ExpressionBox>
       );
     case "read-address":
-      return <>Hop 1: ambil Address dari {pointer}.</>;
+      return (
+        <ExpressionBox caption={`Hop 1: isi ${pointer}, Address ${ADDRESS}.`}>
+          {deref}
+          <ExpressionArrow />
+          <span className="text-muted-foreground">
+            …<span className="sr-only"> (belum)</span>
+          </span>
+        </ExpressionBox>
+      );
     case "read-value":
-      return <>Hop 2: ambil Value di Address itu.</>;
+      return (
+        <ExpressionBox caption={`Hop 2: Value di Address ${ADDRESS}.`}>
+          {deref}
+          <ExpressionArrow />
+          <span className="sr-only">hasilnya</span>
+          {value}
+        </ExpressionBox>
+      );
     case "write":
       return (
-        <>
-          Cuma <code>*{pointer}</code> yang ganti; <code>{pointer}</code> tetep{" "}
-          {ADDRESS}.
-        </>
+        <ExpressionBox
+          caption={`Ditulis ke Address ${ADDRESS}, yang masih disimpen ${pointer}.`}
+        >
+          {deref}
+          <span>=</span>
+          {value}
+        </ExpressionBox>
       );
     case "print-name":
-      return <>Satu kotak, dua jalan buat ngaksesnya.</>;
+      return (
+        <ExpressionBox
+          caption={`Satu kotak, dua nama: ${name} dan *${pointer}.`}
+        >
+          <span className="min-w-0 wrap-anywhere text-variable-ink">
+            {name}
+          </span>
+          <ExpressionArrow />
+          <span className="sr-only">hasilnya</span>
+          {value}
+        </ExpressionBox>
+      );
   }
 }

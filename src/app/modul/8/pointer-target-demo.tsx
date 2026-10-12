@@ -2,19 +2,23 @@
 
 import { CodePanel } from "@/components/code-panel";
 import { VariableDiagram } from "@/components/memory-diagram";
-import { PointerCompare } from "@/components/pointer-compare";
 import {
   EditorCard,
   FieldPair,
-  FieldRow,
   IntInput,
   LaterLabel,
   NameInput,
-  ValueLabel,
 } from "@/components/program-editor";
 import { Narration, RoleChip } from "@/components/ui";
 import { useSimulation } from "@/components/use-simulation";
-import { Footnote, Muted, Output, Workspace } from "@/components/workspace";
+import {
+  ExpressionArrow,
+  ExpressionBox,
+  Footnote,
+  Muted,
+  Output,
+  Workspace,
+} from "@/components/workspace";
 import {
   ADDRESSES,
   EXAMPLE_PROGRAM,
@@ -54,20 +58,21 @@ export function PointerTargetDemo() {
           title="Atur Variabel"
           onRestore={() => handleEdit({ kind: "restore" })}
         >
-          <FieldRow>
+          {/* One row per pair, read top to bottom; a narrow pane drops
+              each Value under its name. */}
+          <div className="grid gap-3">
             <FieldPair>
               <NameInput
                 label="Nama variabel A"
                 value={program.nameA}
                 taken={takenNames(program, "nameA")}
                 onCommit={rename("nameA")}
-                className="flex-1 basis-28"
+                className="flex-1 basis-40"
               />
               <IntInput
-                label={<ValueLabel name={program.nameA} />}
+                label={<InitialLabel name={program.nameA} />}
                 value={program.valueA}
                 onCommit={revalue("valueA")}
-                className="w-24"
               />
             </FieldPair>
             <FieldPair>
@@ -76,13 +81,12 @@ export function PointerTargetDemo() {
                 value={program.nameB}
                 taken={takenNames(program, "nameB")}
                 onCommit={rename("nameB")}
-                className="flex-1 basis-28"
+                className="flex-1 basis-40"
               />
               <IntInput
-                label={<ValueLabel name={program.nameB} />}
+                label={<InitialLabel name={program.nameB} />}
                 value={program.valueB}
                 onCommit={revalue("valueB")}
-                className="w-24"
               />
             </FieldPair>
             <FieldPair>
@@ -91,16 +95,15 @@ export function PointerTargetDemo() {
                 value={pointer}
                 taken={takenNames(program, "pointer")}
                 onCommit={rename("pointer")}
-                className="flex-1 basis-28"
+                className="flex-1 basis-40"
               />
               <IntInput
                 label={<LaterLabel pointer={pointer} />}
                 value={program.newValue}
                 onCommit={revalue("newValue")}
-                className="w-32"
               />
             </FieldPair>
-          </FieldRow>
+          </div>
         </EditorCard>
       }
       code={
@@ -141,25 +144,18 @@ export function PointerTargetDemo() {
         ]}
         note={now.declared === 0 ? "Deklarasi belum dijalankan." : null}
       />
-      <PointerCompare
-        pointer={pointer}
-        address={now.target === null ? null : ADDRESSES[now.target]}
-        value={now.target === null ? null : now.values[now.target]}
-        focus={
-          now.phase === "point" || now.phase === "redirect"
-            ? "pointer"
-            : now.phase === "write"
-              ? "target"
-              : null
-        }
-        caption={<Caption program={program} now={now} />}
-      />
+      <Expression program={program} now={now} />
       <Output pieces={now.terminal} freshFrom={sim.freshFrom} />
       <Footnote>
         Address {ADDRESSES.a} dan {ADDRESSES.b} cuma simulasi.
       </Footnote>
     </Workspace>
   );
+}
+
+/** An initial Value's label, named after its variable as it is now. */
+function InitialLabel({ name }: { name: string }) {
+  return <span className="wrap-anywhere">Value awal {name}</span>;
 }
 
 /** One sentence on why the current line does what it does. */
@@ -197,81 +193,107 @@ function Explanation({
     case "point":
       return (
         <>
-          <RoleChip role="pointer">{pointer}</RoleChip> nyimpen{" "}
-          <RoleChip role="address">Address {ADDRESSES.a}</RoleChip>, jadi nunjuk
-          ke {nameA}.
+          <RoleChip role="pointer">{pointer}</RoleChip> nyimpen Address dari{" "}
+          <code>&amp;{nameA}</code>, jadi panahnya ke{" "}
+          <RoleChip role="variable">{nameA}</RoleChip>.
         </>
       );
     case "redirect":
       return (
         <>
-          <code>
-            {pointer} = &amp;{nameB}
-          </code>{" "}
-          (tanpa *) cuma ganti isi <RoleChip role="pointer">{pointer}</RoleChip>{" "}
-          jadi <RoleChip role="address">{ADDRESSES.b}</RoleChip>; Value dua
+          <strong>Ganti target:</strong> tanpa *, yang ganti isi{" "}
+          <RoleChip role="pointer">{pointer}</RoleChip> sendiri; Value dua
           variabelnya tetep.
         </>
       );
     case "write":
       return (
         <>
-          <code>*{pointer} = …</code> (pakai *) nulis{" "}
-          <RoleChip role="value">{now.values.b}</RoleChip> ke yang ditunjuk,
-          yaitu <RoleChip role="variable">{nameB}</RoleChip>; {pointer} nggak
-          pindah.
+          <strong>Ubah Value target:</strong> pakai *, yang ganti Value di ujung
+          panah; <RoleChip role="pointer">{pointer}</RoleChip> nggak pindah.
         </>
       );
     case "print":
       return (
         <>
-          <RoleChip role="variable">{nameA}</RoleChip> tetep {now.values.a};
-          cuma {nameB} yang berubah, lewat {pointer}.
+          <RoleChip role="variable">{nameA}</RoleChip> nggak pernah kesentuh;
+          cuma <RoleChip role="variable">{nameB}</RoleChip> yang berubah, lewat{" "}
+          {pointer}.
         </>
       );
   }
 }
 
-/** What the comparison shows on this step, in a few words. */
-function Caption({
+/** The one expression this step works out, with what it gives. */
+function Expression({
   program,
   now,
 }: {
   program: PointerTargetProgram;
   now: PointerTargetStep;
 }) {
-  const { pointer } = program;
+  const { nameA, nameB, pointer, valueB, newValue } = program;
+  const ptr = (
+    <span className="min-w-0 wrap-anywhere text-pointer-ink">{pointer}</span>
+  );
+  const address = (target: Target) => (
+    <>
+      <ExpressionArrow />
+      <span className="sr-only">isinya</span>
+      <span className="text-address-ink">{ADDRESSES[target]}</span>
+    </>
+  );
   switch (now.phase) {
     case "start":
     case "declare-a":
     case "declare-b":
-      return <Muted>Deklarasi Pointer belum dijalankan.</Muted>;
+      return (
+        <ExpressionBox
+          caption={<Muted>Deklarasi Pointer belum dijalankan.</Muted>}
+        >
+          <span className="min-w-0 wrap-anywhere text-muted-foreground">
+            {pointer}
+          </span>
+        </ExpressionBox>
+      );
     case "point":
       return (
-        <>
-          <code>{pointer}</code> nunjuk ke kotak di {ADDRESSES.a}.
-        </>
+        <ExpressionBox caption={`Target ${pointer}: ${nameA}.`}>
+          {ptr}
+          {address("a")}
+        </ExpressionBox>
       );
     case "redirect":
       return (
-        <>
-          Isi <code>{pointer}</code> ganti {ADDRESSES.a} → {ADDRESSES.b}, jadi{" "}
-          <code>*{pointer}</code> sekarang kotak lain.
-        </>
+        <ExpressionBox caption={`Target ${pointer}: ${nameA} → ${nameB}.`}>
+          {ptr}
+          {address("b")}
+        </ExpressionBox>
       );
     case "write":
       return (
-        <>
-          Cuma <code>*{pointer}</code> yang ganti; <code>{pointer}</code> tetep{" "}
-          {ADDRESSES.b}.
-        </>
+        <ExpressionBox caption={`Value ${nameB}: ${valueB} → ${newValue}.`}>
+          <span className="min-w-0 wrap-anywhere text-pointer-ink">
+            *{pointer}
+          </span>
+          <span>=</span>
+          <span className="text-memory-ink">{newValue}</span>
+        </ExpressionBox>
       );
     case "print":
       return (
-        <>
-          <code>{pointer}</code> = Address, <code>*{pointer}</code> = Value di
-          Address itu.
-        </>
+        <ExpressionBox caption={`${pointer} masih nunjuk ke ${nameB}.`}>
+          {TARGETS.map((key) => (
+            <span key={key} className="flex min-w-0 items-center gap-3">
+              <span className="min-w-0 wrap-anywhere text-variable-ink">
+                {key === "a" ? nameA : nameB}
+              </span>
+              <ExpressionArrow />
+              <span className="sr-only">isinya</span>
+              <span className="text-memory-ink">{now.values[key]}</span>
+            </span>
+          ))}
+        </ExpressionBox>
       );
   }
 }

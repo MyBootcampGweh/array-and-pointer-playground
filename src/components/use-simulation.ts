@@ -52,8 +52,10 @@ export function useSimulation<P, E extends { kind: string }, S extends Step>({
       return;
     }
     setInputs(withInput(inputs, slot, value));
-    // The step after a scanf is always the one that stores what it read.
-    stepper.goTo(stepper.step + 1);
+    // The step after a scanf is always the one that stores what it read; the
+    // run shows it, then plays on. An absolute step, so a second submit from
+    // the same render stores the same answer and lands on the same step.
+    stepper.resume(stepper.step + 1);
   }
 
   return {

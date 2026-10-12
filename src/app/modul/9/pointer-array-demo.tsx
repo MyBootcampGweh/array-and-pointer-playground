@@ -1,5 +1,7 @@
 "use client";
 
+import { ChevronRight } from "lucide-react";
+
 import { AddressMath } from "@/components/address-math";
 import { CodePanel } from "@/components/code-panel";
 import { ArrayDiagram } from "@/components/memory-diagram";
@@ -73,16 +75,36 @@ export function PointerArrayDemo() {
                 onChange={(length) => handleEdit({ kind: "resize", length })}
               />
             </FieldPair>
-            <FieldPair>
-              <NameInput
-                label="Nama Pointer"
-                value={pointer}
-                taken={takenNames(program, "pointer")}
-                onCommit={(name) =>
-                  handleEdit({ kind: "rename", target: "pointer", name })
-                }
-                className="flex-1 basis-28"
+            <NameInput
+              label="Nama Pointer"
+              value={pointer}
+              taken={takenNames(program, "pointer")}
+              onCommit={(name) =>
+                handleEdit({ kind: "rename", target: "pointer", name })
+              }
+              className="flex-1 basis-36"
+            />
+          </FieldRow>
+          <EditorNotice notice={sim.notice} />
+          <ValuesRow
+            arrayName={arrayName}
+            values={values}
+            onCommit={(index, value) =>
+              handleEdit({ kind: "value", index, value })
+            }
+          />
+          {/* Optional, so the first look has one thing less to read; closed,
+              it keeps a half-typed k. */}
+          <details className="group">
+            {/* Safari draws its own marker unless told not to. */}
+            <summary className="flex min-h-11 w-fit cursor-pointer list-none items-center gap-1.5 rounded-lg text-sm text-muted-foreground outline-none hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50 [&::-webkit-details-marker]:hidden">
+              <ChevronRight
+                aria-hidden="true"
+                className="size-4 transition-transform group-open:rotate-90"
               />
+              Opsional: ganti k (sekarang {offset})
+            </summary>
+            <div className="flex flex-wrap items-end gap-3 pt-1">
               <DraftInput
                 label={`k di *(${pointer} + k)`}
                 value={offset}
@@ -95,16 +117,8 @@ export function PointerArrayDemo() {
                 className="w-32"
                 inputClassName="text-index-ink"
               />
-            </FieldPair>
-          </FieldRow>
-          <EditorNotice notice={sim.notice} />
-          <ValuesRow
-            arrayName={arrayName}
-            values={values}
-            onCommit={(index, value) =>
-              handleEdit({ kind: "value", index, value })
-            }
-          />
+            </div>
+          </details>
         </EditorCard>
       }
       code={
@@ -139,14 +153,12 @@ export function PointerArrayDemo() {
             isActive: now.phase === "point" || now.phase === "increment",
             isHidden: now.pointerAt === null,
           },
-          {
-            kind: "label",
-            role: "address",
-            column: now.probe ?? pointerAt,
-            label: `${pointer} + ${offset}`,
-            isHidden: now.probe === null,
-          },
         ]}
+        alias={{
+          column: now.probe ?? pointerAt,
+          label: `*(${pointer} + ${offset})`,
+          isHidden: now.probe === null,
+        }}
         note={now.isDeclared ? null : "Deklarasi belum dijalankan."}
       />
       <Expression program={program} now={now} />
@@ -186,10 +198,8 @@ function Explanation({
     case "point":
       return (
         <>
-          Di sini <code>{arrayName}</code> otomatis dipakai sebagai Address
-          elemen pertamanya, jadi <RoleChip role="pointer">{pointer}</RoleChip>{" "}
-          nyimpen <RoleChip role="address">{BASE_ADDRESS}</RoleChip>; array-nya
-          sendiri tetep array, bukan Pointer.
+          <RoleChip role="pointer">{pointer}</RoleChip> mulai di elemen pertama;{" "}
+          <code>{arrayName}</code> sendiri tetep array, bukan Pointer.
         </>
       );
     case "index":
@@ -198,37 +208,33 @@ function Explanation({
           <code>
             {arrayName}[{offset}]
           </code>{" "}
-          baca elemen <RoleChip role="index">Index {offset}</RoleChip> langsung
-          dari array.
+          baca <RoleChip role="index">Index {offset}</RoleChip> langsung dari
+          array.
         </>
       );
     case "deref":
       return (
         <>
-          <RoleChip role="pointer">
+          <code>
             {pointer} + {offset}
-          </RoleChip>{" "}
-          maju {offset} elemen ({offset * INT_SIZE_BYTES} byte), bukan {offset}{" "}
-          byte.
+          </code>{" "}
+          cuma ngitung Address {offset} elemen setelah{" "}
+          <RoleChip role="pointer">{pointer}</RoleChip>; {pointer} sendiri nggak
+          pindah.
         </>
       );
     case "increment":
       return (
         <>
-          <code>{pointer}++</code> mindahin{" "}
-          <RoleChip role="pointer">{pointer}</RoleChip> sendiri 1 elemen: isinya
-          jadi <RoleChip role="address">{addressOf(1)}</RoleChip>.
+          Beda sama <code>{pointer} + 1</code>, <code>{pointer}++</code> ngubah
+          isi <RoleChip role="pointer">{pointer}</RoleChip> sendiri.
         </>
       );
     case "deref-moved":
       return (
         <>
-          {pointer} udah di elemen kedua, jadi{" "}
-          <code>
-            *({pointer} + {offset})
-          </code>{" "}
-          sekarang baca <RoleChip role="index">Index {offset + 1}</RoleChip>,
-          bukan Index {offset} lagi.
+          Ekspresinya sama, tapi dihitung dari posisi{" "}
+          <RoleChip role="pointer">{pointer}</RoleChip> yang baru.
         </>
       );
   }
@@ -243,11 +249,7 @@ function Expression({
   now: PointerArrayStep;
 }) {
   const { arrayName, pointer, values, offset } = program;
-  const deref = (
-    <code>
-      *({pointer} + {offset})
-    </code>
-  );
+  const deref = `*(${pointer} + ${offset})`;
   switch (now.phase) {
     case "start":
       return (
@@ -291,7 +293,13 @@ function Expression({
       );
     case "index":
       return (
-        <ExpressionBox caption="Langsung dari array, lewat Index.">
+        <ExpressionBox
+          caption={
+            <>
+              Habis ini, <code>{deref}</code> baca elemen yang sama.
+            </>
+          }
+        >
           <ElementName name={arrayName} index={offset} />
           <ExpressionArrow />
           <span className="sr-only">hasilnya</span>
@@ -305,13 +313,14 @@ function Expression({
           caption={
             now.phase === "deref" ? (
               <>
-                {deref} = <code>{`${arrayName}[${offset}]`}</code>, soalnya{" "}
-                {pointer} masih di elemen pertama.
+                <code>{deref}</code> = <code>{`${arrayName}[${offset}]`}</code>,
+                selama {pointer} masih di elemen pertama.
               </>
             ) : (
               <>
-                Sekarang {deref} = <code>{`${arrayName}[${offset + 1}]`}</code>,
-                bukan <code>{`${arrayName}[${offset}]`}</code>.
+                Sekarang <code>{deref}</code> ={" "}
+                <code>{`${arrayName}[${offset + 1}]`}</code>, bukan{" "}
+                <code>{`${arrayName}[${offset}]`}</code>.
               </>
             )
           }
@@ -330,7 +339,7 @@ function Expression({
         <ExpressionBox
           caption={
             <>
-              Sekarang <code>{pointer}</code> nyimpen {addressOf(1)}.
+              Sekarang <code>{pointer}</code> nunjuk ke elemen [1].
             </>
           }
         >

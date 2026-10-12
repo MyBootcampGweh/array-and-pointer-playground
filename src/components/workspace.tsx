@@ -227,10 +227,13 @@ function TerminalText({
 }
 
 /**
- * Where a waiting scanf reads from. Typing never touches the run; the number
- * goes in only on Enter or the button, and only once it is a valid int. When
- * the student comes back to a scanf they already answered, the old answer
- * is filled in: Enter keeps the rest of the run, a new number replays it.
+ * Where a waiting scanf reads from. Typing never touches the run, and
+ * neither does leaving the field; the number goes in only on Enter or the
+ * button, and only once it is a valid int, after which the run plays on by
+ * itself. A scanf still waiting takes the focus, so the student can type
+ * straight away. When the student comes back to a scanf they already
+ * answered, the old answer is filled in: Enter keeps the rest of the run, a
+ * new number replays it.
  */
 export function ScanfInput({
   label,
@@ -270,6 +273,8 @@ export function ScanfInput({
       <div className="flex gap-2">
         <input
           id={id}
+          // Mounted per step, so this fires each time a scanf starts waiting.
+          autoFocus={answered === null}
           value={draft}
           onChange={(event) => {
             setDraft(event.target.value);
@@ -292,11 +297,13 @@ export function ScanfInput({
         <p id={errorId} role="alert" className="text-sm text-destructive">
           {error}
         </p>
-      ) : answered !== null ? (
+      ) : (
         <p className="text-sm text-muted-foreground">
-          Ganti angkanya buat ngulang dari sini.
+          {answered === null
+            ? "Enter buat simpan dan lanjut."
+            : "Ganti angkanya buat ngulang dari sini."}
         </p>
-      ) : null}
+      )}
     </form>
   );
 }

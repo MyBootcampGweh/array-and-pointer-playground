@@ -47,11 +47,38 @@ test("play on the last step restarts; manual stepping pauses", () => {
   );
 });
 
-test("goto jumps there and pauses", () => {
-  const playing = { step: 1, isPlaying: true };
-  assert.deepEqual(stepperReducer(playing, { type: "goto", step: 4 }), {
+test("resume jumps past an answered scanf and plays on, from Next or Play", () => {
+  for (const isPlaying of [false, true]) {
+    assert.deepEqual(
+      stepperReducer({ step: 3, isPlaying }, { type: "resume", step: 4 }),
+      { step: 4, isPlaying: true },
+    );
+  }
+  assert.equal(
+    stepperReducer(INITIAL_STEPPER_STATE, { type: "resume", step: -2 }).step,
+    0,
+  );
+});
+
+test("a repeated resume lands on the same step: nothing is skipped", () => {
+  const once = stepperReducer(
+    { step: 3, isPlaying: false },
+    { type: "resume", step: 4 },
+  );
+  assert.deepEqual(stepperReducer(once, { type: "resume", step: 4 }), once);
+});
+
+test("pause stops a resumed run; reset clears it", () => {
+  const resumed = stepperReducer(
+    { step: 3, isPlaying: false },
+    { type: "resume", step: 4 },
+  );
+  assert.deepEqual(stepperReducer(resumed, { type: "pause" }), {
     step: 4,
     isPlaying: false,
   });
-  assert.equal(stepperReducer(playing, { type: "goto", step: -2 }).step, 0);
+  assert.deepEqual(
+    stepperReducer(resumed, { type: "reset" }),
+    INITIAL_STEPPER_STATE,
+  );
 });

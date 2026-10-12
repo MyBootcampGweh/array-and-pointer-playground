@@ -45,6 +45,20 @@ test("nilai[k] and *(ptr + k) read the same element only while ptr is at element
   assert.equal(output(steps.get("deref-moved")), "20\n20\n30\n");
 });
 
+test("only ptr++ moves ptr; reading *(ptr + k) never does", () => {
+  for (const offset of [0, 1, 3]) {
+    const run = runSnapshots({ ...EXAMPLE_PROGRAM, offset });
+    const moves = run.filter((step, i) => {
+      const before = run[i - 1]?.pointerAt ?? null;
+      return before !== null && step.pointerAt !== before;
+    });
+    assert.deepEqual(
+      moves.map((step) => step.phase),
+      ["increment"],
+    );
+  }
+});
+
 test("ptr + k moves k ints: 4 bytes each in this simulation", () => {
   for (const offset of [0, 1, 3]) {
     const program = { ...EXAMPLE_PROGRAM, offset };
