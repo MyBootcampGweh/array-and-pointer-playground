@@ -20,9 +20,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          # Nothing here pushes, so the token is not left in .git/config.
+          persist-credentials: false
 
-      # Reads the pnpm version from "packageManager" in package.json.
-      - uses: pnpm/action-setup@v6
+      # Reads the pnpm version from "packageManager" in package.json. Pinned:
+      # v6.1.0 is the first release that supports pnpm 12, and the floating
+      # v6 tag still pointed one commit before it (checked 2026-10-12).
+      - uses: pnpm/action-setup@v6.1.0
 
       - uses: actions/setup-node@v7
         with:

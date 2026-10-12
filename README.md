@@ -30,13 +30,21 @@ python -m http.server 4173 --directory preview
 # open http://localhost:4173/array-and-pointer-playground/
 ```
 
+A Windows build may log 404s for `__next.*.txt` prefetch files in this local
+preview: Next.js 16.4 writes them into nested folders on Windows. The deploy
+builds on Linux, where they are written correctly.
+
 ## Deploy to GitHub Pages
 
-1. Push the repository to GitHub on the `main` branch.
+1. Create the repository on GitHub, add it as `origin`, and push `main`. Keep
+   `main` the default branch: by default the `github-pages` environment only
+   accepts deployments from the default branch.
 2. In the repository, open **Settings → Pages** and set **Source** to
-   **GitHub Actions**.
+   **GitHub Actions** (one time; no secrets are needed).
 3. Every push to `main` runs `.github/workflows/deploy.yml`, which verifies the
-   code, builds it with the repository's base path, and publishes `out/`.
+   code, builds it with the repository's base path, and publishes `out/`. It
+   can also be started by hand from the **Actions** tab (**Run workflow**).
 
-The base path comes from `actions/configure-pages`, so renaming the repository
-or adding a custom domain needs no code change.
+The site is then at `https://<owner>.github.io/<repository>/`. The base path
+comes from `actions/configure-pages`, so renaming the repository or adding a
+custom domain needs no code change.
